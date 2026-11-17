@@ -73,7 +73,7 @@
       font-weight: 700; font-size: 12px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: 0.15s;
     }
     .btn:hover { filter: brightness(1.08); }
-    .btn:disabled { opacity: 0.42; cursor: not-allowed; filter: none; }
+    .btn:disabled { opacity: 0.45; cursor: not-allowed; filter: none; }
     .btn-slate { background: var(--slate-dim); color: var(--slate-hue); border: 1px solid var(--slate-border); }
     .btn-slate:hover { background: rgba(129,140,248,0.2); }
     .btn-ghost { background: var(--surface-2); color: var(--text); border: 1px solid var(--border); }
@@ -107,9 +107,9 @@
     @media (max-width: 780px) { .stepper { grid-template-columns: 1fr; } }
     .step-node {
       padding: 10px 8px; border-radius: 10px; border: 1px solid var(--border); background: #080e1a;
-      font-size: 11px; text-align: center; cursor: pointer; transition: 0.16s; position: relative;
+      font-size: 11px; text-align: center; cursor: pointer; transition: 0.16s; user-select: none;
     }
-    .step-node:hover { border-color: var(--cyan); transform: translateY(-1px); }
+    .step-node:hover { border-color: var(--cyan); transform: translateY(-1px); background: var(--surface-3); }
     .step-node.done { border-color: var(--cyan-border); background: var(--cyan-dim); color: var(--cyan); }
     .step-node.current { border-color: var(--cyan); background: rgba(6,182,212,0.22); color: #fff; font-weight: 700; box-shadow: 0 0 14px rgba(6,182,212,0.16); }
     .step-node.next-target { border-color: var(--slate-hue); background: var(--slate-dim); color: var(--slate-hue); font-weight: 700; }
@@ -118,7 +118,7 @@
     .mono-box {
       background: #060a12; border: 1px solid var(--border); border-radius: 9px; padding: 12px;
       font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; line-height: 1.55;
-      white-space: pre-wrap; max-height: 310px; overflow-y: auto; color: #cbd5e1;
+      white-space: pre-wrap; max-height: 320px; overflow-y: auto; color: #cbd5e1;
     }
     .note-card {
       background: #080e1a; border-left: 3px solid var(--cyan); border-top: 1px solid var(--border);
@@ -129,7 +129,7 @@
     .note-stage-pill { background: var(--slate-dim); color: var(--slate-hue); border: 1px solid var(--slate-border); padding: 1px 7px; border-radius: 4px; font-size: 10px; margin-left: 6px; }
     .note-img { max-width: 100%; max-height: 220px; border-radius: 6px; margin-top: 8px; border: 1px solid var(--border); cursor: zoom-in; }
 
-    /* Connected AMA Agents List (Matches Screenshot 1) */
+    /* Connected AMA Agents List */
     .agent-list { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
     .agent-row {
       display: flex; justify-content: space-between; align-items: center;
@@ -139,7 +139,7 @@
     .agent-name { color: var(--cyan); font-weight: 600; }
     .agent-time { color: var(--muted); }
 
-    /* Read-Only KQL Sandbox (Matches Screenshot 2) */
+    /* Read-Only KQL Sandbox */
     .cred-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 14px 0; }
     @media (max-width: 700px) { .cred-grid { grid-template-columns: 1fr; } }
     .cred-box {
@@ -302,7 +302,7 @@
         </div>
         <div class="row" style="justify-content:flex-end;margin-top:6px;">
           <button class="btn btn-ghost" onclick="closeModal('stageModal')">Cancel</button>
-          <button class="btn" onclick="confirmStageModal()">Commit Phase &amp; Sync</button>
+          <button id="commitStageBtn" class="btn" onclick="confirmStageModal()">Commit Phase &amp; Sync</button>
         </div>
       </div>
     </div>
@@ -531,16 +531,16 @@
 
         <!-- ACTION BUTTONS -->
         <div class="row" style="margin-bottom:12px;">
-          <button class="btn" onclick="runAiTriage('${inc.incident_id}')">&#10022; Run Gemini AI Triage</button>
-          <button class="btn btn-slate" onclick="runQaAudit('${inc.incident_id}')">&#9733; Audit IR &amp; Score (${inc.assigned_to})</button>
+          <button id="aiTriageBtn" class="btn" onclick="runAiTriage('${inc.incident_id}')">&#10022; Run Gemini AI Triage</button>
+          <button id="qaAuditBtn" class="btn btn-slate" onclick="runQaAudit('${inc.incident_id}')">&#9733; Audit IR &amp; Score (${inc.assigned_to})</button>
           ${!isCompleted ? `<button class="btn btn-ghost" onclick="openStageModal('${nextStage}')">Advance to ${nextStage} &rarr;</button>` : ''}
           ${(isCompleted || inc.qa_audit) ? `<button class="btn btn-ghost" onclick="downloadShowcaseReport('${inc.incident_id}')">&#11015; Download Full IR Report</button>` : ''}
         </div>
 
         <!-- GEMINI TRIAGE & L2 POST-INVESTIGATION AUDIT DIRECTLY UNDER ACTION BUTTONS -->
         <div class="section-box">
-          <div class="section-lbl">Gemini 3.5 Flash Triage Report</div>
-          <div id="aiTriageBox" class="mono-box">${inc.ai_analysis || "Click 'Run Gemini AI Triage' to correlate 7-day anomalies and host logs."}</div>
+          <div class="section-lbl">Gemini 3.5 Flash Triage &amp; KQL Hunt Queries</div>
+          <div id="aiTriageBox" class="mono-box">${inc.ai_analysis || "Click 'Run Gemini AI Triage' to correlate host telemetry and generate tailored KQL hunt queries."}</div>
           ${inc.qa_audit ? `
             <div class="row" style="justify-content:space-between;margin-top:14px;margin-bottom:8px;">
               <div class="section-lbl" style="margin:0;color:var(--slate-hue);">Principal L2 Investigation Audit &amp; Score (NIST SP 800-61 / Telemetry Verified)</div>
@@ -568,7 +568,7 @@
               <input type="file" id="screenshotInput" accept="image/*" style="width:auto;font-size:11px;" onchange="handleScreenshotFile(this)" />
               <span id="screenshotPreviewName" style="font-size:11px;color:var(--cyan);"></span>
             </div>
-            <button class="btn" onclick="submitWorkNote('${inc.incident_id}')">Post Note &amp; Evidence</button>
+            <button id="postNoteBtn" class="btn" onclick="submitWorkNote('${inc.incident_id}')">Post Note &amp; Evidence</button>
           </div>
           <div style="margin-top:10px;">${notesHtml}</div>
         </div>
@@ -592,7 +592,6 @@
       });
       if (!r.ok) return alert(await r.text());
       await loadIncidents();
-      // Automatically prompt for Acknowledgement right after assignment
       openStageModal("Acknowledgement");
     }
 
@@ -613,16 +612,27 @@
       const justification = document.getElementById("modalStageJustification").value.trim();
       const classification = document.getElementById("modalClassSelect")?.value || "TruePositive";
       if (justification.length < 5) return alert("Enter at least 5 characters of valid justification.");
-      const r = await fetch(`${API_BASE}/api/incidents/${inc.incident_id}/stage`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          assignee, target_stage: modalTargetStage, justification, classification,
-          created_utc: inc.created_time, severity: inc.severity, title: inc.title, ticket_number: inc.ticket_number
-        })
-      });
-      if (!r.ok) return alert(await r.text());
-      closeModal("stageModal");
-      await loadIncidents();
+
+      const btn = document.getElementById("commitStageBtn");
+      const origTxt = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = "Syncing to Sentinel...";
+
+      try {
+        const r = await fetch(`${API_BASE}/api/incidents/${inc.incident_id}/stage`, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            assignee, target_stage: modalTargetStage, justification, classification,
+            created_utc: inc.created_time, severity: inc.severity, title: inc.title, ticket_number: inc.ticket_number
+          })
+        });
+        if (!r.ok) return alert(await r.text());
+        closeModal("stageModal");
+        await loadIncidents();
+      } finally {
+        btn.disabled = false;
+        btn.textContent = origTxt;
+      }
     }
 
     function handleScreenshotFile(input) {
@@ -642,24 +652,49 @@
       const note = document.getElementById("workNoteText").value.trim();
       const author = document.getElementById("topAssigneeSelect")?.value || inc?.assigned_to || "Mohan Krishna";
       if (!note && !pendingScreenshotB64) return alert("Enter a work note or attach a screenshot.");
-      const r = await fetch(`${API_BASE}/api/incidents/${incId}/notes`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          author, note, stage_tag: inc?.ir_stage || "General",
-          screenshot_b64: pendingScreenshotB64, screenshot_name: pendingScreenshotName
-        })
-      });
-      if (!r.ok) return alert(await r.text());
-      pendingScreenshotB64 = null;
-      pendingScreenshotName = null;
-      await loadIncidents();
+
+      const btn = document.getElementById("postNoteBtn");
+      const origTxt = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = "Posting...";
+
+      try {
+        const r = await fetch(`${API_BASE}/api/incidents/${incId}/notes`, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            author, note, stage_tag: inc?.ir_stage || "General",
+            screenshot_b64: pendingScreenshotB64, screenshot_name: pendingScreenshotName
+          })
+        });
+        if (!r.ok) return alert(await r.text());
+        const savedNote = await r.json();
+        inc.work_notes = inc.work_notes || [];
+        inc.work_notes.push(savedNote);
+        pendingScreenshotB64 = null;
+        pendingScreenshotName = null;
+        renderDetail();
+      } finally {
+        const b = document.getElementById("postNoteBtn");
+        if (b) { b.disabled = false; b.textContent = origTxt; }
+      }
     }
 
     async function runAiTriage(incId) {
-      document.getElementById("aiTriageBox").textContent = "Running 3-query KQL correlation & Gemini 3.5 Flash triage...";
-      const r = await fetch(`${API_BASE}/api/incidents/${incId}/ai-triage`, { method: "POST" });
-      if (!r.ok) return alert(await r.text());
-      await loadIncidents();
+      const inc = incidents.find(x => x.incident_id === incId);
+      const btn = document.getElementById("aiTriageBtn");
+      btn.disabled = true;
+      btn.textContent = "Correlating Logs & Generating KQL...";
+      document.getElementById("aiTriageBox").textContent = "Running telemetry correlation & Gemini 3.5 Flash triage...";
+      try {
+        const r = await fetch(`${API_BASE}/api/incidents/${incId}/ai-triage`, { method: "POST" });
+        if (!r.ok) return alert(await r.text());
+        const data = await r.json();
+        if (inc) inc.ai_analysis = data.ai_analysis;
+        renderDetail();
+      } finally {
+        const b = document.getElementById("aiTriageBtn");
+        if (b) { b.disabled = false; b.innerHTML = "&#10022; Run Gemini AI Triage"; }
+      }
     }
 
     async function runQaAudit(incId) {
@@ -668,9 +703,19 @@
         const proceed = confirm("This incident is not marked Resolved/Closed yet. Audit the partial IR workflow anyway?");
         if (!proceed) return;
       }
-      const r = await fetch(`${API_BASE}/api/incidents/${incId}/audit-score`, { method: "POST" });
-      if (!r.ok) return alert(await r.text());
-      await loadIncidents();
+      const btn = document.getElementById("qaAuditBtn");
+      btn.disabled = true;
+      btn.textContent = "Auditing IR & Telemetry...";
+      try {
+        const r = await fetch(`${API_BASE}/api/incidents/${incId}/audit-score`, { method: "POST" });
+        if (!r.ok) return alert(await r.text());
+        const data = await r.json();
+        if (inc) inc.qa_audit = data.qa_audit;
+        renderDetail();
+      } finally {
+        const b = document.getElementById("qaAuditBtn");
+        if (b) { b.disabled = false; b.innerHTML = `&#9733; Audit IR &amp; Score (${inc?.assigned_to || 'Analyst'})`; }
+      }
     }
 
     // === DOWNLOADABLE COMPLETE IR SHOWCASE REPORT ===
