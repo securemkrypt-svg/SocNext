@@ -1,400 +1,622 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>MKRYPT // Live Azure Sentinel & AI SOC Lab</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <title>MKRYPT // Autonomous SOC Workbench</title>
   <style>
-    body { background-color: #070b14; color: #e2e8f0; font-family: 'Inter', system-ui, sans-serif; }
-    .panel { background: #0d1424; border: 1px solid #1e293b; border-radius: 0.75rem; }
-    .glow-cyan { box-shadow: 0 0 20px rgba(6, 182, 212, 0.12); }
-    pre { white-space: pre-wrap; word-break: break-word; }
+    :root {
+      --bg: #070b14; --panel: #0d1424; --panel-2: #111b2e; --border: #1e2d4a;
+      --cyan: #06b6d4; --blue: #3b82f6; --green: #10b981; --amber: #f59e0b;
+      --red: #ef4444; --purple: #a855f7; --text: #e2e8f0; --muted: #94a3b8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
+    body { background: var(--bg); color: var(--text); min-height: 100vh; }
+    .topbar {
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      padding: 14px 24px; background: var(--panel); border-bottom: 1px solid var(--border); flex-wrap: wrap;
+    }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; letter-spacing: 0.08em; color: var(--cyan); }
+    .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--cyan); box-shadow: 0 0 10px var(--cyan); }
+    .badge { font-size: 11px; padding: 4px 10px; border-radius: 999px; background: #132238; border: 1px solid var(--border); color: var(--muted); }
+    .nav-tabs { display: flex; gap: 8px; flex-wrap: wrap; }
+    .tab-btn {
+      background: var(--panel-2); color: var(--muted); border: 1px solid var(--border);
+      padding: 8px 14px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 13px; transition: 0.15s;
+    }
+    .tab-btn.active { background: var(--blue); color: #fff; border-color: var(--blue); }
+    .status-pill { font-size: 12px; padding: 6px 12px; border-radius: 999px; background: rgba(16,185,129,0.12); color: var(--green); border: 1px solid rgba(16,185,129,0.35); }
+    .container { padding: 20px 24px; max-width: 1600px; margin: 0 auto; }
+    .view { display: none; }
+    .view.active { display: block; }
+
+    /* Workbench Split */
+    .split { display: grid; grid-template-columns: 390px 1fr; gap: 20px; align-items: start; }
+    @media (max-width: 1050px) { .split { grid-template-columns: 1fr; } }
+    .card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 18px; }
+    .card-hdr { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+    .queue-list { display: flex; flex-direction: column; gap: 10px; max-height: 76vh; overflow-y: auto; padding-right: 4px; }
+    .inc-item {
+      background: var(--panel-2); border: 1px solid var(--border); border-radius: 10px; padding: 12px;
+      cursor: pointer; transition: 0.15s;
+    }
+    .inc-item:hover, .inc-item.selected { border-color: var(--cyan); background: #13213a; }
+    .inc-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 12px; }
+    .inc-id { color: var(--cyan); font-weight: 700; }
+    .sev { padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; }
+    .sev-High { background: rgba(239,68,68,0.18); color: var(--red); border: 1px solid rgba(239,68,68,0.4); }
+    .sev-Medium { background: rgba(245,158,11,0.18); color: var(--amber); border: 1px solid rgba(245,158,11,0.4); }
+    .sev-Low, .sev-Informational { background: rgba(59,130,246,0.18); color: var(--blue); border: 1px solid rgba(59,130,246,0.4); }
+    .inc-title { font-size: 13px; font-weight: 600; margin-bottom: 8px; line-height: 1.35; }
+    .inc-meta { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); flex-wrap: wrap; gap: 4px; }
+    .sla-tag { font-weight: 700; padding: 2px 6px; border-radius: 4px; font-size: 10px; }
+    .sla-ok { background: rgba(16,185,129,0.15); color: var(--green); }
+    .sla-warn { background: rgba(245,158,11,0.15); color: var(--amber); }
+    .sla-breach { background: rgba(239,68,68,0.2); color: var(--red); }
+
+    /* Controls & Inputs */
+    .btn {
+      background: var(--blue); color: #fff; border: none; padding: 8px 14px; border-radius: 8px;
+      font-weight: 600; font-size: 12px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+    }
+    .btn:hover { filter: brightness(1.1); }
+    .btn-cyan { background: var(--cyan); color: #041019; }
+    .btn-purple { background: var(--purple); color: #fff; }
+    .btn-red { background: var(--red); color: #fff; }
+    .btn-green { background: var(--green); color: #041019; }
+    .btn-ghost { background: var(--panel-2); color: var(--text); border: 1px solid var(--border); }
+    input, select, textarea {
+      background: #080d18; color: var(--text); border: 1px solid var(--border);
+      border-radius: 8px; padding: 8px 10px; font-size: 13px; width: 100%;
+    }
+    .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .section-box { background: var(--panel-2); border: 1px solid var(--border); border-radius: 10px; padding: 14px; margin-top: 14px; }
+    .section-lbl { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; color: var(--cyan); text-transform: uppercase; margin-bottom: 10px; }
+
+    /* IR Stepper */
+    .stepper { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 12px; }
+    @media (max-width: 760px) { .stepper { grid-template-columns: 1fr; } }
+    .step-node {
+      padding: 8px; border-radius: 8px; border: 1px solid var(--border); background: #09101f;
+      font-size: 11px; text-align: center; cursor: pointer;
+    }
+    .step-node.done { border-color: var(--green); background: rgba(16,185,129,0.12); color: var(--green); }
+    .step-node.current { border-color: var(--cyan); background: rgba(6,182,212,0.15); color: #fff; font-weight: 700; }
+    .step-node.picked { outline: 2px solid var(--amber); }
+
+    /* AI Box & Work Notes */
+    .mono-box {
+      background: #060a12; border: 1px solid var(--border); border-radius: 8px; padding: 12px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; line-height: 1.55;
+      white-space: pre-wrap; max-height: 290px; overflow-y: auto; color: #cbd5e1;
+    }
+    .note-card { background: #080e1a; border: 1px solid var(--border); border-radius: 8px; padding: 10px; margin-top: 8px; font-size: 12px; }
+    .note-hdr { display: flex; justify-content: space-between; color: var(--cyan); font-size: 11px; margin-bottom: 4px; }
+    .note-img { max-width: 100%; max-height: 220px; border-radius: 6px; margin-top: 8px; border: 1px solid var(--border); cursor: zoom-in; }
+
+    /* Metrics Grid */
+    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; margin-bottom: 18px; }
+    .kpi { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+    .kpi-val { font-size: 28px; font-weight: 800; color: var(--cyan); margin: 6px 0; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    th, td { padding: 10px; border-bottom: 1px solid var(--border); text-align: left; }
+    th { color: var(--cyan); background: var(--panel-2); }
+
+    /* Modal */
+    .modal-backdrop {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.75); display: none;
+      align-items: center; justify-content: center; z-index: 999; padding: 16px;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal { background: var(--panel); border: 1px solid var(--cyan); border-radius: 12px; padding: 20px; max-width: 440px; width: 100%; }
   </style>
 </head>
-<body class="min-h-screen flex flex-col">
+<body>
+  <div class="topbar">
+    <div class="brand">
+      <div class="dot"></div>
+      <span>MKRYPT</span>
+      <span class="badge">SENTINEL-LAB // EAST ASIA</span>
+    </div>
+    <div class="nav-tabs">
+      <button class="tab-btn active" onclick="switchTab('workbench', this)">SOC Incident Workbench</button>
+      <button class="tab-btn" onclick="switchTab('metrics', this)">IR Metrics &amp; SLA Analytics</button>
+      <button class="tab-btn" onclick="switchTab('lab', this)">Explore Azure &amp; Live Consoles</button>
+      <button class="tab-btn" onclick="switchTab('kql', this)">KQL Hunt Sandbox</button>
+    </div>
+    <div id="healthPill" class="status-pill">Connecting to SOC Engine...</div>
+  </div>
 
-  <!-- Top Navigation Bar -->
-  <header class="border-b border-slate-800 bg-slate-950/80 backdrop-blur sticky top-0 z-30 px-6 py-3 flex flex-wrap items-center justify-between gap-4">
-    <div class="flex items-center gap-3">
-      <div class="w-3 h-3 rounded-full bg-cyan-400 animate-pulse"></div>
-      <span class="font-bold tracking-wider text-cyan-400 text-lg">MKRYPT</span>
-      <span class="text-xs px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">SENTINEL-LAB // EAST ASIA</span>
+  <div class="container">
+    <!-- TAB 1: WORKBENCH -->
+    <div id="tab-workbench" class="view active">
+      <div class="split">
+        <div class="card">
+          <div class="card-hdr">
+            <div>
+              <h3 style="font-size:15px;">Sentinel Incident Queue</h3>
+              <span style="font-size:11px;color:var(--muted);">Live SLA Clock &amp; Bidirectional Sync</span>
+            </div>
+            <button class="btn btn-ghost" onclick="loadIncidents()">&#8635; Refresh</button>
+          </div>
+          <div id="queueList" class="queue-list"></div>
+        </div>
+
+        <div class="card" id="detailPane">
+          <div style="color:var(--muted);padding:40px;text-align:center;">Select an incident from the queue to begin investigation.</div>
+        </div>
+      </div>
     </div>
 
-    <nav class="flex gap-2">
-      <button onclick="switchTab('soc')" id="tab-soc" class="px-4 py-1.5 rounded-lg text-sm font-medium bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">
-        SOC Incident Workbench
-      </button>
-      <button onclick="switchTab('azure')" id="tab-azure" class="px-4 py-1.5 rounded-lg text-sm font-medium bg-slate-900 text-slate-400 border border-slate-800 hover:text-white">
-        Explore Azure & Live Consoles
-      </button>
-      <button onclick="switchTab('kql')" id="tab-kql" class="px-4 py-1.5 rounded-lg text-sm font-medium bg-slate-900 text-slate-400 border border-slate-800 hover:text-white">
-        KQL Hunt Sandbox
-      </button>
-    </nav>
-
-    <div id="api-badge" class="text-xs px-3 py-1 rounded-full bg-slate-900 border border-slate-700 text-slate-400">
-      Connecting to SOC Engine...
+    <!-- TAB 2: CUSTOM IR METRICS DASHBOARD (MTTA / MTTI / MTTR) -->
+    <div id="tab-metrics" class="view">
+      <div class="card-hdr">
+        <h2>SOC Incident Response Performance &amp; SLA Ledger</h2>
+        <button class="btn btn-cyan" onclick="loadMetrics()">&#8635; Recalculate KPIs</button>
+      </div>
+      <div class="kpi-grid">
+        <div class="kpi"><div style="font-size:11px;color:var(--muted);">MTTA (Mean Time to Acknowledge)</div><div class="kpi-val" id="kpiMtta">--</div><div style="font-size:11px;color:var(--muted);">Alert Created &rarr; Analyst Ack</div></div>
+        <div class="kpi"><div style="font-size:11px;color:var(--muted);">MTTI (Mean Time to Isolate/Contain)</div><div class="kpi-val" id="kpiMtti">--</div><div style="font-size:11px;color:var(--muted);">Alert Created &rarr; Threat Contained</div></div>
+        <div class="kpi"><div style="font-size:11px;color:var(--muted);">MTTR (Mean Time to Resolve)</div><div class="kpi-val" id="kpiMttr">--</div><div style="font-size:11px;color:var(--muted);">Alert Created &rarr; Sentinel Closed</div></div>
+        <div class="kpi"><div style="font-size:11px;color:var(--muted);">SLA Compliance Rate</div><div class="kpi-val" id="kpiSla">--</div><div style="font-size:11px;color:var(--muted);" id="kpiCounts">0 Tracked Tickets</div></div>
+      </div>
+      <div class="card" style="overflow-x:auto;">
+        <div class="section-lbl">Incident Lifecycle Timing Ledger</div>
+        <table>
+          <thead>
+            <tr><th>Ticket</th><th>Incident Title</th><th>Severity</th><th>Assignee</th><th>Current Stage</th><th>SLA Target</th><th>Ack (m)</th><th>Contain (m)</th><th>Resolve (m)</th><th>SLA Status</th></tr>
+          </thead>
+          <tbody id="metricsBody"></tbody>
+        </table>
+      </div>
     </div>
-  </header>
 
-  <main class="flex-1 max-w-7xl w-full mx-auto p-6 space-y-6">
-
-    <!-- TAB 1: SERVICENOW-STYLE SOC INCIDENT WORKBENCH -->
-    <section id="view-soc" class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-      <div class="lg:col-span-5 panel p-4 flex flex-col gap-3">
-        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
-          <div>
-            <h2 class="font-semibold text-white">Sentinel Incident Queue</h2>
-            <p class="text-xs text-slate-400">Bidirectional Sync • API 2025-09-01</p>
-          </div>
-          <button onclick="loadIncidents()" class="text-xs px-3 py-1.5 rounded bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-slate-700">
-            ↻ Refresh
-          </button>
-        </div>
-        <div id="incident-list" class="space-y-2.5 max-h-[72vh] overflow-y-auto pr-1">
-          <div class="text-sm text-slate-400 py-8 text-center">Loading Microsoft Sentinel incidents...</div>
+    <!-- TAB 3: AZURE LAB TOPOLOGY & PROTECTED VM CONTROLS -->
+    <div id="tab-lab" class="view">
+      <div class="card-hdr">
+        <h2>Azure SOC Lab Infrastructure &amp; Live Consoles</h2>
+        <div class="row">
+          <a class="btn btn-ghost" id="ttydLink" target="_blank">Open VM-1 Shell (ttyd)</a>
+          <a class="btn btn-ghost" id="novncLink" target="_blank">Open Win-Victim-01 Console (noVNC)</a>
+          <button class="btn btn-cyan" onclick="loadTopology()">&#8635; Refresh VMs</button>
         </div>
       </div>
+      <div id="vmGrid" class="kpi-grid"></div>
+      <div class="card" style="margin-top:16px;">
+        <div class="section-lbl">Log Analytics Agent Heartbeats (Last 24h)</div>
+        <div id="hbBox" class="mono-box">Loading heartbeats...</div>
+      </div>
+    </div>
 
-      <div class="lg:col-span-7 panel p-5 space-y-5" id="incident-detail">
-        <div class="text-center py-20 text-slate-500 text-sm">
-          Select an incident from the queue to inspect telemetry, run Gemini AI triage, or post Sentinel work notes.
+    <!-- TAB 4: KQL SANDBOX -->
+    <div id="tab-kql" class="view">
+      <div class="card">
+        <div class="card-hdr">
+          <h3>Microsoft Sentinel KQL Threat Hunt Sandbox</h3>
+          <div id="kqlPresets" class="row"></div>
+        </div>
+        <textarea id="kqlInput" rows="4" style="font-family:monospace;margin-bottom:10px;">SecurityEvent | where EventID == 4625 | summarize Attempts=count() by TargetAccount, Computer | top 15 by Attempts desc</textarea>
+        <div class="row">
+          <select id="kqlSpan" style="width:160px;">
+            <option value="PT1H">Last 1 Hour</option>
+            <option value="PT24H" selected>Last 24 Hours</option>
+            <option value="P7D">Last 7 Days</option>
+          </select>
+          <button class="btn btn-cyan" onclick="runKqlQuery()">Execute KQL Query</button>
+        </div>
+        <div id="kqlResult" class="mono-box" style="margin-top:12px;">Query output will appear here...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: REGISTER NEW ANALYST (NO AD REQUIRED) -->
+  <div id="analystModal" class="modal-backdrop">
+    <div class="modal">
+      <h3 style="margin-bottom:12px;color:var(--cyan);">Register Local SOC Analyst</h3>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:12px;">Creates an immediate local responder profile in SQLite without requiring Microsoft Entra ID / AD.</p>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <input id="newAnalystName" placeholder="Full Name (e.g., Kavya R.)" />
+        <input id="newAnalystRole" placeholder="Role (e.g., L2 Incident Responder)" value="L2 Incident Responder" />
+        <input id="newAnalystEmail" placeholder="Email (e.g., kavya@mkrypt.local)" />
+        <div class="row" style="justify-content:flex-end;margin-top:6px;">
+          <button class="btn btn-ghost" onclick="closeModal('analystModal')">Cancel</button>
+          <button class="btn btn-cyan" onclick="submitNewAnalyst()">Save Analyst</button>
         </div>
       </div>
-    </section>
+    </div>
+  </div>
 
-    <!-- TAB 2: EXPLORE AZURE LAB TOPOLOGY & DUAL BROWSER CONSOLES -->
-    <section id="view-azure" class="hidden space-y-6">
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="vm-cards">
-        <div class="panel p-4 text-sm text-slate-400">Fetching live Azure ARM VM states...</div>
+  <!-- MODAL: PASSWORD GATE TO DISABLE VM-1 -->
+  <div id="vmPassModal" class="modal-backdrop">
+    <div class="modal">
+      <h3 style="margin-bottom:8px;color:var(--red);">&#9888; Protected Infrastructure Lock (VM-1)</h3>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:12px;">VM-1 hosts the MKRYPT FastAPI backend and Cloudflare tunnels. Enter the Admin Secret Key to authorize deallocation.</p>
+      <input id="vmAdminPassInput" type="password" placeholder="Enter VM_ADMIN_SECRET..." />
+      <div class="row" style="justify-content:flex-end;margin-top:12px;">
+        <button class="btn btn-ghost" onclick="closeModal('vmPassModal')">Cancel</button>
+        <button class="btn btn-red" onclick="confirmVm1Deallocate()">Confirm Deallocate VM-1</button>
       </div>
-
-      <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        <div class="panel p-4 space-y-3">
-          <div class="flex items-center justify-between">
-            <div>
-              <h3 class="font-semibold text-white text-sm">VM-1 // Ubuntu 24.04 SOC Collector (ttyd)</h3>
-              <p class="text-xs text-slate-400">Private IP: 172.16.0.4 • AMA Syslog & FastAPI Host</p>
-            </div>
-            <a id="link-linux" target="_blank" class="text-xs text-cyan-400 hover:underline">Open Fullscreen ↗</a>
-          </div>
-          <iframe id="iframe-linux" class="w-full h-[420px] rounded-lg border border-slate-800 bg-black"></iframe>
-        </div>
-
-        <div class="panel p-4 space-y-3">
-          <div class="flex items-center justify-between">
-            <div>
-              <h3 class="font-semibold text-white text-sm">Win-Victim-01 // Windows Server 2022 (noVNC)</h3>
-              <p class="text-xs text-slate-400">Private IP: 172.16.0.5 • Target Host & SecurityEvent Stream</p>
-            </div>
-            <a id="link-win" target="_blank" class="text-xs text-cyan-400 hover:underline">Open Fullscreen ↗</a>
-          </div>
-          <iframe id="iframe-win" class="w-full h-[420px] rounded-lg border border-slate-800 bg-black"></iframe>
-        </div>
-      </div>
-    </section>
-
-    <!-- TAB 3: READ-ONLY KQL SANDBOX -->
-    <section id="view-kql" class="hidden space-y-6">
-      <div class="panel p-6 space-y-4" id="kql-sandbox-box">
-        <div class="text-sm text-slate-400">Loading KQL Sandbox credentials & detection hunts...</div>
-      </div>
-    </section>
-
-  </main>
+    </div>
+  </div>
 
   <script>
-    // === LIVE ENDPOINT CONFIGURATION ===
-    // === LIVE ENDPOINT CONFIGURATION ===
-const API_BASE = "https://bag-pole-live-pretty.trycloudflare.com";
-const LINUX_TTYD_URL = "https://belkin-comedy-andrew-surprise.trycloudflare.com";
-const WIN_NOVNC_URL = "https://charger-extended-moisture-admissions.trycloudflare.com/vnc.html?autoconnect=true";
-    
+    // === LIVE ENDPOINT CONFIGURATION (Keep your active tunnel URLs) ===
+    const API_BASE = "https://bag-pole-live-pretty.trycloudflare.com";
+    const LINUX_TTYD_URL = "https://belkin-comedy-andrew-surprise.trycloudflare.com";
+    const WIN_NOVNC_URL = "https://charger-extended-moisture-admissions.trycloudflare.com/vnc.html?autoconnect=true";
+
+    const IR_STAGES = ["Assignment", "Acknowledgement", "Containment", "Eradication", "Resolution"];
     let incidents = [];
     let analysts = [];
     let selectedId = null;
+    let pickedStage = null;
+    let pendingScreenshotB64 = null;
+    let pendingScreenshotName = null;
 
-    document.getElementById("iframe-linux").src = LINUX_TTYD_URL;
-    document.getElementById("link-linux").href = LINUX_TTYD_URL;
-    document.getElementById("iframe-win").src = WIN_NOVNC_URL;
-    document.getElementById("link-win").href = WIN_NOVNC_URL;
+    document.getElementById("ttydLink").href = LINUX_TTYD_URL;
+    document.getElementById("novncLink").href = WIN_NOVNC_URL;
 
-    function switchTab(tab) {
-      ["soc", "azure", "kql"].forEach(t => {
-        document.getElementById(`view-${t}`).classList.toggle("hidden", t !== tab);
-        const btn = document.getElementById(`tab-${t}`);
-        btn.className = t === tab
-          ? "px-4 py-1.5 rounded-lg text-sm font-medium bg-cyan-500/20 text-cyan-300 border border-cyan-500/40"
-          : "px-4 py-1.5 rounded-lg text-sm font-medium bg-slate-900 text-slate-400 border border-slate-800 hover:text-white";
-      });
-      if (tab === "azure") loadTopology();
-      if (tab === "kql") loadKqlSandbox();
+    function switchTab(name, btn) {
+      document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
+      document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+      document.getElementById("tab-" + name).classList.add("active");
+      btn.classList.add("active");
+      if (name === "metrics") loadMetrics();
+      if (name === "lab") loadTopology();
+      if (name === "kql") loadKqlPresets();
+    }
+
+    function openModal(id) { document.getElementById(id).classList.add("open"); }
+    function closeModal(id) { document.getElementById(id).classList.remove("open"); }
+
+    function formatUtc(iso) {
+      if (!iso) return "N/A";
+      const d = new Date(iso);
+      return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + " · " + d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+    }
+
+    function computeSlaClock(inc) {
+      if (!inc.created_time) return { text: "No timestamp", cls: "sla-ok" };
+      const createdMs = new Date(inc.created_time).getTime();
+      const ackIso = inc.ir_timestamps?.Acknowledgement || inc.ir_timestamps?.Resolution;
+      const endMs = ackIso ? new Date(ackIso).getTime() : Date.now();
+      const elapsedMins = Math.max(0, Math.floor((endMs - createdMs) / 60000));
+      const slaMins = inc.sla_minutes || 60;
+      const rem = slaMins - elapsedMins;
+      if (ackIso) {
+        return rem >= 0
+          ? { text: `ACKED (${elapsedMins}m / ${slaMins}m)`, cls: "sla-ok" }
+          : { text: `BREACHED (+${Math.abs(rem)}m)`, cls: "sla-breach" };
+      }
+      if (rem < 0) return { text: `SLA BREACHED (-${Math.abs(rem)}m)`, cls: "sla-breach" };
+      if (rem <= 10) return { text: `SLA: ${rem}m left`, cls: "sla-warn" };
+      return { text: `SLA: ${rem}m left (${elapsedMins}m age)`, cls: "sla-ok" };
     }
 
     async function checkHealth() {
       try {
-        const res = await fetch(`${API_BASE}/api/health`);
-        const data = await res.json();
-        const badge = document.getElementById("api-badge");
-        badge.textContent = `● SOC API Online (${data.resource_group})`;
-        badge.className = "text-xs px-3 py-1 rounded-full bg-emerald-950/70 border border-emerald-700/60 text-emerald-300";
+        const r = await fetch(`${API_BASE}/api/health`);
+        const d = await r.json();
+        document.getElementById("healthPill").textContent = `● SOC API Online (${d.resource_group})`;
       } catch {
-        const badge = document.getElementById("api-badge");
-        badge.textContent = "● SOC API Unreachable";
-        badge.className = "text-xs px-3 py-1 rounded-full bg-rose-950/70 border border-rose-700/60 text-rose-300";
+        document.getElementById("healthPill").textContent = "● API Unreachable";
+        document.getElementById("healthPill").style.color = "var(--red)";
       }
+    }
+
+    async function loadAnalysts() {
+      const r = await fetch(`${API_BASE}/api/analysts`);
+      analysts = await r.json();
+    }
+
+    async function submitNewAnalyst() {
+      const name = document.getElementById("newAnalystName").value.trim();
+      const role = document.getElementById("newAnalystRole").value.trim();
+      const email = document.getElementById("newAnalystEmail").value.trim();
+      if (!name || !email) return alert("Name and email are required.");
+      const r = await fetch(`${API_BASE}/api/analysts`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, role, email })
+      });
+      if (!r.ok) return alert(await r.text());
+      await loadAnalysts();
+      closeModal("analystModal");
+      renderDetail();
     }
 
     async function loadIncidents() {
-      const [incRes, anaRes] = await Promise.all([
-        fetch(`${API_BASE}/api/incidents`),
-        fetch(`${API_BASE}/api/analysts`)
-      ]);
-      incidents = await incRes.json();
-      analysts = await anaRes.json();
-      renderIncidentList();
-      if (selectedId) renderIncidentDetail(selectedId);
-      else if (incidents.length) renderIncidentDetail(incidents[0].incident_id);
+      await loadAnalysts();
+      const r = await fetch(`${API_BASE}/api/incidents`);
+      incidents = await r.json();
+      if (!selectedId && incidents.length) selectedId = incidents[0].incident_id;
+      renderQueue();
+      renderDetail();
     }
 
-    function sevBadge(sev) {
-      const map = {
-        High: "bg-rose-500/20 text-rose-300 border-rose-500/40",
-        Medium: "bg-amber-500/20 text-amber-300 border-amber-500/40",
-        Low: "bg-sky-500/20 text-sky-300 border-sky-500/40",
-        Informational: "bg-slate-700/40 text-slate-300 border-slate-600"
-      };
-      return map[sev] || map.Informational;
+    function renderQueue() {
+      const box = document.getElementById("queueList");
+      box.innerHTML = incidents.map(inc => {
+        const sla = computeSlaClock(inc);
+        return `
+          <div class="inc-item ${inc.incident_id === selectedId ? 'selected' : ''}" onclick="selectIncident('${inc.incident_id}')">
+            <div class="inc-top">
+              <span class="inc-id">${inc.ticket_number}</span>
+              <span class="sla-tag ${sla.cls}">${sla.text}</span>
+              <span class="sev sev-${inc.severity}">${inc.severity}</span>
+            </div>
+            <div class="inc-title">${inc.title}</div>
+            <div class="inc-meta">
+              <span>Assignee: <b>${inc.assigned_to}</b></span>
+              <span>${formatUtc(inc.created_time)}</span>
+            </div>
+            <div class="inc-meta" style="margin-top:4px;">
+              <span style="color:var(--cyan);">Phase: ${inc.ir_stage}</span>
+              <span>Sentinel: ${inc.sentinel_status}</span>
+            </div>
+          </div>`;
+      }).join("");
     }
 
-    function renderIncidentList() {
-      const container = document.getElementById("incident-list");
-      if (!incidents.length) {
-        container.innerHTML = `<div class="text-sm text-slate-400 py-8 text-center">No active incidents in Sentinel workspace.</div>`;
-        return;
-      }
-      container.innerHTML = incidents.map(inc => `
-        <div onclick="renderIncidentDetail('${inc.incident_id}')"
-             class="p-3.5 rounded-lg border cursor-pointer transition ${selectedId === inc.incident_id ? 'bg-slate-800/90 border-cyan-500/60' : 'bg-slate-900/60 border-slate-800 hover:border-slate-700'}">
-          <div class="flex items-center justify-between gap-2 mb-1">
-            <span class="text-xs font-mono text-cyan-400">${inc.ticket_number}</span>
-            <span class="text-[11px] px-2 py-0.5 rounded border ${sevBadge(inc.severity)}">${inc.severity}</span>
-          </div>
-          <div class="text-sm font-medium text-white line-clamp-1">${inc.title}</div>
-          <div class="flex items-center justify-between text-xs text-slate-400 mt-2">
-            <span>Assignee: <strong class="text-slate-200">${inc.assigned_to}</strong></span>
-            <span>${inc.snow_state} • Sentinel: ${inc.sentinel_status}</span>
-          </div>
-        </div>
-      `).join("");
-    }
-
-    function renderIncidentDetail(id) {
+    function selectIncident(id) {
       selectedId = id;
-      renderIncidentList();
-      const inc = incidents.find(i => i.incident_id === id);
-      if (!inc) return;
+      pickedStage = null;
+      pendingScreenshotB64 = null;
+      pendingScreenshotName = null;
+      renderQueue();
+      renderDetail();
+    }
 
-      const analystOptions = analysts.map(a =>
-        `<option value="${a.id}" ${a.name === inc.assigned_to ? 'selected' : ''}>${a.name} (${a.role})</option>`
+    function renderDetail() {
+      const inc = incidents.find(x => x.incident_id === selectedId);
+      const pane = document.getElementById("detailPane");
+      if (!inc) return;
+      const sla = computeSlaClock(inc);
+      const activeStage = pickedStage || inc.ir_stage || "Assignment";
+      const curIdx = IR_STAGES.indexOf(inc.ir_stage || "Assignment");
+
+      const analystOpts = analysts.map(a =>
+        `<option value="${a.name}" ${a.name === inc.assigned_to ? 'selected' : ''}>${a.name} (${a.role})</option>`
       ).join("");
 
-      const notesHtml = inc.work_notes.length
-        ? inc.work_notes.map(n => `
-            <div class="p-3 rounded bg-slate-900/90 border border-slate-800 text-xs space-y-1">
-              <div class="flex justify-between text-slate-400">
-                <strong class="text-cyan-300">${n.author}</strong>
-                <span>${new Date(n.created_at).toLocaleString()} • Synced ✓</span>
-              </div>
-              <p class="text-slate-200">${n.note}</p>
-            </div>
-          `).join("")
-        : `<p class="text-xs text-slate-500">No work notes logged yet.</p>`;
+      const stepperHtml = IR_STAGES.map((st, idx) => {
+        const ts = inc.ir_timestamps?.[st];
+        const cls = idx < curIdx ? "done" : (idx === curIdx ? "current" : "");
+        const pickedCls = st === activeStage ? "picked" : "";
+        return `<div class="step-node ${cls} ${pickedCls}" onclick="pickStage('${st}')">
+          <div>${idx + 1}. ${st}</div>
+          <div style="font-size:10px;opacity:0.8;margin-top:3px;">${ts ? formatUtc(ts) : 'Pending'}</div>
+        </div>`;
+      }).join("");
 
-      document.getElementById("incident-detail").innerHTML = `
-        <div class="border-b border-slate-800 pb-4 flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <div class="flex items-center gap-2 mb-1">
-              <span class="font-mono text-xs text-cyan-400">${inc.ticket_number}</span>
-              <span class="text-xs px-2 py-0.5 rounded border ${sevBadge(inc.severity)}">${inc.severity}</span>
-              <span class="text-xs px-2 py-0.5 rounded bg-slate-800 text-slate-300">Sentinel: ${inc.sentinel_status}</span>
-            </div>
-            <h2 class="text-lg font-bold text-white">${inc.title}</h2>
-            <p class="text-xs text-slate-400 mt-1">${inc.description || "No description provided."}</p>
+      const notesHtml = (inc.work_notes || []).map(n => `
+        <div class="note-card">
+          <div class="note-hdr"><span><b>${n.author}</b></span><span>${formatUtc(n.created_at)} · Synced</span></div>
+          <div>${n.note}</div>
+          ${n.screenshot_b64 ? `<img class="note-img" src="${n.screenshot_b64}" title="${n.screenshot_name || 'Evidence'}" onclick="window.open(this.src)" />` : ''}
+        </div>
+      `).join("") || `<div style="color:var(--muted);font-size:12px;">No work notes or evidence logged yet.</div>`;
+
+      pane.innerHTML = `
+        <div class="row" style="justify-content:space-between;margin-bottom:8px;">
+          <div class="row">
+            <span class="inc-id" style="font-size:14px;">${inc.ticket_number}</span>
+            <span class="sev sev-${inc.severity}">${inc.severity}</span>
+            <span class="badge">Sentinel: ${inc.sentinel_status}</span>
+            <span class="sla-tag ${sla.cls}">${sla.text}</span>
           </div>
-          <button onclick="runAiTriage('${inc.incident_id}')" id="btn-ai-triage"
-                  class="px-4 py-2 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-semibold text-xs shadow-lg">
-            ✦ Run Gemini AI Triage
-          </button>
+          <span style="font-size:12px;color:var(--muted);">Created: ${formatUtc(inc.created_time)}</span>
+        </div>
+        <h2 style="font-size:19px;margin-bottom:6px;">${inc.title}</h2>
+        <p style="font-size:13px;color:var(--muted);margin-bottom:14px;">${inc.description || 'No description provided.'}</p>
+
+        <div class="row" style="margin-bottom:14px;">
+          <button class="btn btn-blue" onclick="runAiTriage('${inc.incident_id}')">&#10022; Run Gemini AI Triage</button>
+          <button class="btn btn-purple" onclick="runQaAudit('${inc.incident_id}')">&#9733; Audit IR &amp; Score Assignee (${inc.assigned_to})</button>
         </div>
 
-        <div class="flex flex-wrap items-center gap-3 bg-slate-900/60 p-3 rounded-lg border border-slate-800">
-          <label class="text-xs text-slate-400">Assign Queue / Analyst:</label>
-          <select id="assign-select" class="bg-slate-950 border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white">
-            ${analystOptions}
-          </select>
-          <button onclick="assignTicket('${inc.incident_id}')" class="px-3 py-1.5 rounded bg-slate-800 hover:bg-slate-700 text-xs text-cyan-300 border border-slate-700">
-            Update Assignee
-          </button>
-        </div>
-
-        <div class="space-y-2">
-          <h3 class="text-xs font-semibold uppercase tracking-wider text-cyan-400">Gemini 3.5 Flash + 3-Query KQL Triage Report</h3>
-          <div id="ai-output" class="p-4 rounded-lg bg-slate-950 border border-slate-800 text-xs text-slate-200 leading-relaxed max-h-64 overflow-y-auto">
-            <pre>${inc.ai_analysis || "Click 'Run Gemini AI Triage' to execute 7-day anomaly decomposition, 1h host log correlation, and 24h alert context."}</pre>
+        <!-- 1 & 2: IR WORKFLOW STEPPER + ASSIGNEE + JUSTIFICATION -->
+        <div class="section-box">
+          <div class="row" style="justify-content:space-between;margin-bottom:8px;">
+            <div class="section-lbl" style="margin:0;">Incident Response Lifecycle &amp; Assignment</div>
+            <button class="btn btn-ghost" style="padding:4px 10px;font-size:11px;" onclick="openModal('analystModal')">+ Register New Analyst</button>
           </div>
-        </div>
-
-        <div class="space-y-3 border-t border-slate-800 pt-4">
-          <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-300">Bidirectional Sentinel Work Notes</h3>
-          <div class="flex flex-col sm:flex-row gap-2">
-            <input id="note-input" type="text" placeholder="Add investigation note (pushes live to Microsoft Sentinel)..."
-                   class="flex-1 bg-slate-950 border border-slate-700 rounded px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500" />
-            <select id="status-select" class="bg-slate-950 border border-slate-700 rounded px-2.5 py-2 text-xs text-white">
-              <option value="">Keep Status</option>
-              <option value="Active">Set Active</option>
-              <option value="Closed">Close (TruePositive)</option>
+          <div class="stepper">${stepperHtml}</div>
+          <div class="row" style="margin-bottom:8px;">
+            <select id="assigneeSelect" style="flex:1;min-width:210px;">${analystOpts}</select>
+            <select id="stageSelect" style="width:190px;" onchange="pickStage(this.value)">
+              ${IR_STAGES.map(s => `<option value="${s}" ${s === activeStage ? 'selected' : ''}>Move to: ${s}</option>`).join("")}
             </select>
-            <button onclick="postWorkNote('${inc.incident_id}')" class="px-4 py-2 rounded bg-cyan-600 hover:bg-cyan-500 text-white font-medium text-xs">
-              Post & Sync
-            </button>
           </div>
-          <div class="space-y-2 max-h-44 overflow-y-auto">${notesHtml}</div>
+          ${activeStage === 'Resolution' ? `
+          <div class="row" style="margin-bottom:8px;">
+            <select id="classSelect" style="flex:1;">
+              <option value="TruePositive">TruePositive - Suspicious Activity</option>
+              <option value="BenignPositive">BenignPositive - Suspicious But Expected</option>
+              <option value="FalsePositive">FalsePositive - Incorrect Alert Logic</option>
+            </select>
+          </div>` : ''}
+          <div class="row">
+            <input id="stageJustification" style="flex:1;" placeholder="Mandatory justification for moving to ${activeStage} (syncs to Sentinel)..." />
+            <button class="btn btn-cyan" onclick="submitStageTransition('${inc.incident_id}')">Commit Phase &amp; Sync</button>
+          </div>
+        </div>
+
+        <!-- GEMINI TRIAGE & NIST QA AUDIT OUTPUT -->
+        <div class="section-box">
+          <div class="section-lbl">Gemini 3.5 Flash Triage Report</div>
+          <div id="aiTriageBox" class="mono-box">${inc.ai_analysis || "Click 'Run Gemini AI Triage' to correlate 7-day anomalies and host logs."}</div>
+          ${inc.qa_audit ? `<div class="section-lbl" style="margin-top:12px;color:var(--purple);">NIST SP 800-61 / ISO 27035 Investigation Score</div><div class="mono-box" style="border-color:var(--purple);">${inc.qa_audit}</div>` : ''}
+        </div>
+
+        <!-- 3: MULTIPLE WORK NOTES + SCREENSHOT ATTACHMENTS -->
+        <div class="section-box">
+          <div class="section-lbl">Investigation Work Notes &amp; Evidence Screenshots</div>
+          <textarea id="workNoteText" rows="2" placeholder="Document IOCs, KQL findings, containment actions..."></textarea>
+          <div class="row" style="margin-top:8px;justify-content:space-between;">
+            <div class="row">
+              <input type="file" id="screenshotInput" accept="image/*" style="width:auto;font-size:11px;" onchange="handleScreenshotFile(this)" />
+              <span id="screenshotPreviewName" style="font-size:11px;color:var(--green);"></span>
+            </div>
+            <button class="btn btn-cyan" onclick="submitWorkNote('${inc.incident_id}')">Post Note &amp; Evidence</button>
+          </div>
+          <div style="margin-top:10px;">${notesHtml}</div>
         </div>
       `;
     }
 
-    async function assignTicket(id) {
-      const analyst_id = document.getElementById("assign-select").value;
-      await fetch(`${API_BASE}/api/incidents/${id}/assign`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ analyst_id })
+    function pickStage(st) {
+      pickedStage = st;
+      renderDetail();
+    }
+
+    function handleScreenshotFile(input) {
+      const file = input.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        pendingScreenshotB64 = reader.result;
+        pendingScreenshotName = file.name;
+        document.getElementById("screenshotPreviewName").textContent = `Attached: ${file.name}`;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    async function submitStageTransition(incId) {
+      const inc = incidents.find(x => x.incident_id === incId);
+      const assignee = document.getElementById("assigneeSelect").value;
+      const target_stage = document.getElementById("stageSelect").value;
+      const justification = document.getElementById("stageJustification").value.trim();
+      const classification = document.getElementById("classSelect")?.value || "TruePositive";
+      if (justification.length < 5) return alert("Enter at least 5 characters of valid justification.");
+      const r = await fetch(`${API_BASE}/api/incidents/${incId}/stage`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          assignee, target_stage, justification, classification,
+          created_utc: inc.created_time, severity: inc.severity, title: inc.title, ticket_number: inc.ticket_number
+        })
       });
+      if (!r.ok) return alert(await r.text());
+      pickedStage = null;
       await loadIncidents();
     }
 
-    async function postWorkNote(id) {
-      const note = document.getElementById("note-input").value.trim();
-      const new_status = document.getElementById("status-select").value || null;
-      if (!note) return;
-      await fetch(`${API_BASE}/api/incidents/${id}/notes`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ author: "Mohan Krishna", note, new_status })
+    async function submitWorkNote(incId) {
+      const note = document.getElementById("workNoteText").value.trim();
+      const author = document.getElementById("assigneeSelect")?.value || "Mohan Krishna";
+      if (!note && !pendingScreenshotB64) return alert("Enter a work note or attach a screenshot.");
+      const r = await fetch(`${API_BASE}/api/incidents/${incId}/notes`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ author, note, screenshot_b64: pendingScreenshotB64, screenshot_name: pendingScreenshotName })
       });
+      if (!r.ok) return alert(await r.text());
+      pendingScreenshotB64 = null;
+      pendingScreenshotName = null;
       await loadIncidents();
     }
 
-    async function runAiTriage(id) {
-      const btn = document.getElementById("btn-ai-triage");
-      const out = document.getElementById("ai-output");
-      btn.disabled = true;
-      btn.textContent = "⏳ Running 3 KQL Hunts + Gemini...";
-      out.innerHTML = `<span class="text-cyan-400">Querying Log Analytics (7d anomaly series, 1h SecurityEvent/Syslog, 24h alerts) and synthesizing triage report...</span>`;
-      try {
-        const res = await fetch(`${API_BASE}/api/incidents/${id}/ai-triage`, { method: "POST" });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.detail || "Triage failed");
-        await loadIncidents();
-      } catch (err) {
-        out.innerHTML = `<span class="text-rose-400">Error: ${err.message}</span>`;
-      } finally {
-        btn.disabled = false;
-        btn.textContent = "✦ Run Gemini AI Triage";
+    async function runAiTriage(incId) {
+      document.getElementById("aiTriageBox").textContent = "Running 3-query KQL correlation & Gemini 3.5 Flash triage...";
+      const r = await fetch(`${API_BASE}/api/incidents/${incId}/ai-triage`, { method: "POST" });
+      if (!r.ok) return alert(await r.text());
+      await loadIncidents();
+    }
+
+    async function runQaAudit(incId) {
+      const r = await fetch(`${API_BASE}/api/incidents/${incId}/audit-score`, { method: "POST" });
+      if (!r.ok) return alert(await r.text());
+      await loadIncidents();
+    }
+
+    // 5: CUSTOM METRICS TAB (MTTA / MTTI / MTTR)
+    async function loadMetrics() {
+      const r = await fetch(`${API_BASE}/api/metrics`);
+      const m = await r.json();
+      document.getElementById("kpiMtta").textContent = `${m.mtta_mins}m`;
+      document.getElementById("kpiMtti").textContent = `${m.mtti_mins}m`;
+      document.getElementById("kpiMttr").textContent = `${m.mttr_mins}m`;
+      document.getElementById("kpiSla").textContent = `${m.sla_compliance_pct}%`;
+      document.getElementById("kpiCounts").textContent = `${m.total_tracked} Tracked (${m.sla_met} Met / ${m.sla_breached} Breached)`;
+      document.getElementById("metricsBody").innerHTML = (m.ledger || []).map(row => `
+        <tr>
+          <td style="color:var(--cyan);font-weight:700;">${row.ticket_number}</td>
+          <td>${row.title}</td>
+          <td>${row.severity}</td>
+          <td>${row.assignee}</td>
+          <td>${row.stage}</td>
+          <td>${row.sla_minutes}m</td>
+          <td>${row.ack_mins ?? '-'}</td>
+          <td>${row.contain_mins ?? '-'}</td>
+          <td>${row.resolve_mins ?? '-'}</td>
+          <td><span class="sla-tag ${row.sla_status === 'BREACHED' ? 'sla-breach' : 'sla-ok'}">${row.sla_status}</span></td>
+        </tr>`).join("");
+    }
+
+    // 4: LAB TOPOLOGY + PASSWORD-GATED VM-1 DISABLE
+    async function loadTopology() {
+      const r = await fetch(`${API_BASE}/api/lab/topology`);
+      const d = await r.json();
+      document.getElementById("vmGrid").innerHTML = (d.virtual_machines || []).map(vm => `
+        <div class="kpi">
+          <div class="row" style="justify-content:space-between;">
+            <b>${vm.name}</b>
+            <span class="badge">${vm.power_state}</span>
+          </div>
+          <div style="font-size:12px;color:var(--muted);margin:8px 0;">${vm.os} · Private IP: ${vm.private_ip}</div>
+          <div class="row" style="margin-top:10px;">
+            <button class="btn btn-green" onclick="controlVm('${vm.name}', 'start')">Start VM</button>
+            <button class="btn btn-red" onclick="requestVmDeallocate('${vm.name}')">Disable / Deallocate</button>
+          </div>
+        </div>`).join("");
+      document.getElementById("hbBox").textContent = JSON.stringify(d.connected_agents_24h, null, 2);
+    }
+
+    function requestVmDeallocate(vmName) {
+      if (vmName === "VM-1") {
+        document.getElementById("vmAdminPassInput").value = "";
+        openModal("vmPassModal");
+      } else {
+        controlVm(vmName, "deallocate");
       }
     }
 
-    async function loadTopology() {
-      const res = await fetch(`${API_BASE}/api/lab/topology`);
-      const data = await res.json();
-      const vmHtml = data.virtual_machines.map(vm => {
-        const running = vm.power_state.toLowerCase().includes("running");
-        return `
-          <div class="panel p-4 space-y-3 glow-cyan">
-            <div class="flex items-center justify-between">
-              <span class="font-bold text-white">${vm.name}</span>
-              <span class="text-xs px-2 py-0.5 rounded ${running ? 'bg-emerald-500/20 text-emerald-300' : 'bg-slate-800 text-slate-400'}">
-                ${vm.power_state}
-              </span>
-            </div>
-            <div class="text-xs text-slate-400 space-y-1">
-              <div>OS: <span class="text-slate-200">${vm.os}</span></div>
-              <div>Private IP: <span class="font-mono text-cyan-300">${vm.private_ip}</span></div>
-            </div>
-            <div class="flex gap-2 pt-1">
-              <button onclick="toggleVm('${vm.name}', 'start')" class="flex-1 py-1.5 rounded bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/40 text-emerald-300 text-xs">
-                ▶ Start
-              </button>
-              <button onclick="toggleVm('${vm.name}', 'deallocate')" class="flex-1 py-1.5 rounded bg-rose-600/20 hover:bg-rose-600/30 border border-rose-500/40 text-rose-300 text-xs">
-                ■ Deallocate
-              </button>
-            </div>
-          </div>
-        `;
-      }).join("");
-
-      const agentsHtml = `
-        <div class="panel p-4 space-y-2">
-          <div class="font-bold text-white">Connected AMA Agents (24h Heartbeat)</div>
-          <div class="space-y-1.5 text-xs">
-            ${data.connected_agents_24h.map(a => `
-              <div class="flex justify-between p-2 rounded bg-slate-900 border border-slate-800">
-                <span class="text-cyan-300 font-mono">${a.Computer}</span>
-                <span class="text-slate-400">${new Date(a.LastSeen).toLocaleTimeString()}</span>
-              </div>
-            `).join("")}
-          </div>
-        </div>
-      `;
-      document.getElementById("vm-cards").innerHTML = vmHtml + agentsHtml;
+    async function confirmVm1Deallocate() {
+      const secret = document.getElementById("vmAdminPassInput").value.trim();
+      if (!secret) return alert("Password is required to disable VM-1.");
+      closeModal("vmPassModal");
+      await controlVm("VM-1", "deallocate", secret);
     }
 
-    async function toggleVm(name, action) {
-      await fetch(`${API_BASE}/api/vms/${name}/${action}`, { method: "POST" });
-      alert(`${action.toUpperCase()} command sent to ${name}. Azure ARM state will update in ~20 seconds.`);
-      setTimeout(loadTopology, 5000);
+    async function controlVm(vmName, action, secret = "") {
+      const headers = secret ? { "x-admin-secret": secret } : {};
+      const r = await fetch(`${API_BASE}/api/vms/${vmName}/${action}`, { method: "POST", headers });
+      if (!r.ok) return alert("Authorization or Azure API failed: " + await r.text());
+      alert(`${vmName}: ${action.toUpperCase()} command accepted by Azure Compute.`);
+      loadTopology();
     }
 
-    async function loadKqlSandbox() {
-      const res = await fetch(`${API_BASE}/api/lab/kql-sandbox`);
-      const data = await res.json();
-      document.getElementById("kql-sandbox-box").innerHTML = `
-        <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 pb-4">
-          <div>
-            <h2 class="text-lg font-bold text-white">Read-Only Microsoft Sentinel KQL Hunt Sandbox</h2>
-            <p class="text-xs text-slate-400">RBAC Scoped: ${data.rbac_roles.join(" + ")}</p>
-          </div>
-          <a href="${data.portal_url}" target="_blank" class="px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold">
-            Launch Azure Sentinel Logs ↗
-          </a>
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-          <div class="p-3 rounded bg-slate-950 border border-slate-800">
-            <span class="text-slate-400">Viewer UPN:</span> <code class="text-cyan-300 select-all">${data.username}</code>
-          </div>
-          <div class="p-3 rounded bg-slate-950 border border-slate-800">
-            <span class="text-slate-400">Viewer Password:</span> <code class="text-cyan-300 select-all">${data.password}</code>
-          </div>
-        </div>
-        <div class="space-y-3">
-          ${data.sample_queries.map(q => `
-            <div class="p-4 rounded-lg bg-slate-950 border border-slate-800 space-y-2">
-              <div class="flex justify-between items-center">
-                <span class="text-xs font-semibold text-white">${q.title}</span>
-                <button onclick="navigator.clipboard.writeText(\`${q.kql}\`)" class="text-xs text-cyan-400 hover:underline">Copy KQL</button>
-              </div>
-              <pre class="text-xs font-mono text-emerald-300">${q.kql}</pre>
-            </div>
-          `).join("")}
-        </div>
-      `;
+    async function loadKqlPresets() {
+      const r = await fetch(`${API_BASE}/api/lab/kql-sandbox`);
+      const d = await r.json();
+      document.getElementById("kqlPresets").innerHTML = (d.sample_queries || []).map(q =>
+        `<button class="btn btn-ghost" onclick='document.getElementById("kqlInput").value=${JSON.stringify(q.kql)}'>${q.title}</button>`
+      ).join("");
     }
 
+    async function runKqlQuery() {
+      const query = document.getElementById("kqlInput").value;
+      const timespan = document.getElementById("kqlSpan").value;
+      document.getElementById("kqlResult").textContent = "Executing KQL against Log Analytics...";
+      const r = await fetch(`${API_BASE}/api/lab/kql-execute`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query, timespan })
+      });
+      document.getElementById("kqlResult").textContent = JSON.stringify(await r.json(), null, 2);
+    }
+
+    // Boot & 30s live SLA clock refresh
     checkHealth();
     loadIncidents();
+    setInterval(renderQueue, 30000);
   </script>
 </body>
 </html>
