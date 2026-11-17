@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MKRYPT // Live Azure Sentinel & AI SOC Lab</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { background-color: #070b14; color: #e2e8f0; font-family: 'Inter', system-ui, sans-serif; }
+    .panel { background: #0d1424; border: 1px solid #1e293b; border-radius: 0.75rem; }
+    .glow-cyan { box-shadow: 0 0 20px rgba(6, 182, 212, 0.12); }
+    pre { white-space: pre-wrap; word-break: break-word; }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <!-- Top Navigation Bar -->
+  <header class="border-b border-slate-800 bg-slate-950/80 backdrop-blur sticky top-0 z-30 px-6 py-3 flex flex-wrap items-center justify-between gap-4">
+    <div class="flex items-center gap-3">
+      <div class="w-3 h-3 rounded-full bg-cyan-400 animate-pulse"></div>
+      <span class="font-bold tracking-wider text-cyan-400 text-lg">MKRYPT</span>
+      <span class="text-xs px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">SENTINEL-LAB // EAST ASIA</span>
+    </div>
+
+    <nav class="flex gap-2">
+      <button onclick="switchTab('soc')" id="tab-soc" class="px-4 py-1.5 rounded-lg text-sm font-medium bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">
+        SOC Incident Workbench
+      </button>
+      <button onclick="switchTab('azure')" id="tab-azure" class="px-4 py-1.5 rounded-lg text-sm font-medium bg-slate-900 text-slate-400 border border-slate-800 hover:text-white">
+        Explore Azure & Live Consoles
+      </button>
+      <button onclick="switchTab('kql')" id="tab-kql" class="px-4 py-1.5 rounded-lg text-sm font-medium bg-slate-900 text-slate-400 border border-slate-800 hover:text-white">
+        KQL Hunt Sandbox
+      </button>
+    </nav>
+
+    <div id="api-badge" class="text-xs px-3 py-1 rounded-full bg-slate-900 border border-slate-700 text-slate-400">
+      Connecting to SOC Engine...
+    </div>
+  </header>
+
+  <main class="flex-1 max-w-7xl w-full mx-auto p-6 space-y-6">
+
+    <!-- TAB 1: SERVICENOW-STYLE SOC INCIDENT WORKBENCH -->
+    <section id="view-soc" class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div class="lg:col-span-5 panel p-4 flex flex-col gap-3">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+          <div>
+            <h2 class="font-semibold text-white">Sentinel Incident Queue</h2>
+            <p class="text-xs text-slate-400">Bidirectional Sync • API 2025-09-01</p>
+          </div>
+          <button onclick="loadIncidents()" class="text-xs px-3 py-1.5 rounded bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-slate-700">
+            ↻ Refresh
+          </button>
+        </div>
+        <div id="incident-list" class="space-y-2.5 max-h-[72vh] overflow-y-auto pr-1">
+          <div class="text-sm text-slate-400 py-8 text-center">Loading Microsoft Sentinel incidents...</div>
+        </div>
+      </div>
+
+      <div class="lg:col-span-7 panel p-5 space-y-5" id="incident-detail">
+        <div class="text-center py-20 text-slate-500 text-sm">
+          Select an incident from the queue to inspect telemetry, run Gemini AI triage, or post Sentinel work notes.
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 2: EXPLORE AZURE LAB TOPOLOGY & DUAL BROWSER CONSOLES -->
+    <section id="view-azure" class="hidden space-y-6">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="vm-cards">
+        <div class="panel p-4 text-sm text-slate-400">Fetching live Azure ARM VM states...</div>
+      </div>
+
+      <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <div class="panel p-4 space-y-3">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="font-semibold text-white text-sm">VM-1 // Ubuntu 24.04 SOC Collector (ttyd)</h3>
+              <p class="text-xs text-slate-400">Private IP: 172.16.0.4 • AMA Syslog & FastAPI Host</p>
+            </div>
+            <a id="link-linux" target="_blank" class="text-xs text-cyan-400 hover:underline">Open Fullscreen ↗</a>
+          </div>
+          <iframe id="iframe-linux" class="w-full h-[420px] rounded-lg border border-slate-800 bg-black"></iframe>
+        </div>
+
+        <div class="panel p-4 space-y-3">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="font-semibold text-white text-sm">Win-Victim-01 // Windows Server 2022 (noVNC)</h3>
+              <p class="text-xs text-slate-400">Private IP: 172.16.0.5 • Target Host & SecurityEvent Stream</p>
+            </div>
+            <a id="link-win" target="_blank" class="text-xs text-cyan-400 hover:underline">Open Fullscreen ↗</a>
+          </div>
+          <iframe id="iframe-win" class="w-full h-[420px] rounded-lg border border-slate-800 bg-black"></iframe>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3: READ-ONLY KQL SANDBOX -->
+    <section id="view-kql" class="hidden space-y-6">
+      <div class="panel p-6 space-y-4" id="kql-sandbox-box">
+        <div class="text-sm text-slate-400">Loading KQL Sandbox credentials & detection hunts...</div>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    // === LIVE ENDPOINT CONFIGURATION ===
+    const API_BASE = "https://medicaid-describing-courier-increase.trycloudflare.com";
+    const LINUX_TTYD_URL = "https://drinks-variation-careful-detection.trycloudflare.com";
+    const WIN_NOVNC_URL = "https://charger-extended-moisture-admissions.trycloudflare.com/vnc.html?autoconnect=true&resize=scale&password=WinUser1";
+
+    let incidents = [];
+    let analysts = [];
+    let selectedId = null;
+
+    document.getElementById("iframe-linux").src = LINUX_TTYD_URL;
+    document.getElementById("link-linux").href = LINUX_TTYD_URL;
+    document.getElementById("iframe-win").src = WIN_NOVNC_URL;
+    document.getElementById("link-win").href = WIN_NOVNC_URL;
+
+    function switchTab(tab) {
+      ["soc", "azure", "kql"].forEach(t => {
+        document.getElementById(`view-${t}`).classList.toggle("hidden", t !== tab);
+        const btn = document.getElementById(`tab-${t}`);
+        btn.className = t === tab
+          ? "px-4 py-1.5 rounded-lg text-sm font-medium bg-cyan-500/20 text-cyan-300 border border-cyan-500/40"
+          : "px-4 py-1.5 rounded-lg text-sm font-medium bg-slate-900 text-slate-400 border border-slate-800 hover:text-white";
+      });
+      if (tab === "azure") loadTopology();
+      if (tab === "kql") loadKqlSandbox();
+    }
+
+    async function checkHealth() {
+      try {
+        const res = await fetch(`${API_BASE}/api/health`);
+        const data = await res.json();
+        const badge = document.getElementById("api-badge");
+        badge.textContent = `● SOC API Online (${data.resource_group})`;
+        badge.className = "text-xs px-3 py-1 rounded-full bg-emerald-950/70 border border-emerald-700/60 text-emerald-300";
+      } catch {
+        const badge = document.getElementById("api-badge");
+        badge.textContent = "● SOC API Unreachable";
+        badge.className = "text-xs px-3 py-1 rounded-full bg-rose-950/70 border border-rose-700/60 text-rose-300";
+      }
+    }
+
+    async function loadIncidents() {
+      const [incRes, anaRes] = await Promise.all([
+        fetch(`${API_BASE}/api/incidents`),
+        fetch(`${API_BASE}/api/analysts`)
+      ]);
+      incidents = await incRes.json();
+      analysts = await anaRes.json();
+      renderIncidentList();
+      if (selectedId) renderIncidentDetail(selectedId);
+      else if (incidents.length) renderIncidentDetail(incidents[0].incident_id);
+    }
+
+    function sevBadge(sev) {
+      const map = {
+        High: "bg-rose-500/20 text-rose-300 border-rose-500/40",
+        Medium: "bg-amber-500/20 text-amber-300 border-amber-500/40",
+        Low: "bg-sky-500/20 text-sky-300 border-sky-500/40",
+        Informational: "bg-slate-700/40 text-slate-300 border-slate-600"
+      };
+      return map[sev] || map.Informational;
+    }
+
+    function renderIncidentList() {
+      const container = document.getElementById("incident-list");
+      if (!incidents.length) {
+        container.innerHTML = `<div class="text-sm text-slate-400 py-8 text-center">No active incidents in Sentinel workspace.</div>`;
+        return;
+      }
+      container.innerHTML = incidents.map(inc => `
+        <div onclick="renderIncidentDetail('${inc.incident_id}')"
+             class="p-3.5 rounded-lg border cursor-pointer transition ${selectedId === inc.incident_id ? 'bg-slate-800/90 border-cyan-500/60' : 'bg-slate-900/60 border-slate-800 hover:border-slate-700'}">
+          <div class="flex items-center justify-between gap-2 mb-1">
+            <span class="text-xs font-mono text-cyan-400">${inc.ticket_number}</span>
+            <span class="text-[11px] px-2 py-0.5 rounded border ${sevBadge(inc.severity)}">${inc.severity}</span>
+          </div>
+          <div class="text-sm font-medium text-white line-clamp-1">${inc.title}</div>
+          <div class="flex items-center justify-between text-xs text-slate-400 mt-2">
+            <span>Assignee: <strong class="text-slate-200">${inc.assigned_to}</strong></span>
+            <span>${inc.snow_state} • Sentinel: ${inc.sentinel_status}</span>
+          </div>
+        </div>
+      `).join("");
+    }
+
+    function renderIncidentDetail(id) {
+      selectedId = id;
+      renderIncidentList();
+      const inc = incidents.find(i => i.incident_id === id);
+      if (!inc) return;
+
+      const analystOptions = analysts.map(a =>
+        `<option value="${a.id}" ${a.name === inc.assigned_to ? 'selected' : ''}>${a.name} (${a.role})</option>`
+      ).join("");
+
+      const notesHtml = inc.work_notes.length
+        ? inc.work_notes.map(n => `
+            <div class="p-3 rounded bg-slate-900/90 border border-slate-800 text-xs space-y-1">
+              <div class="flex justify-between text-slate-400">
+                <strong class="text-cyan-300">${n.author}</strong>
+                <span>${new Date(n.created_at).toLocaleString()} • Synced ✓</span>
+              </div>
+              <p class="text-slate-200">${n.note}</p>
+            </div>
+          `).join("")
+        : `<p class="text-xs text-slate-500">No work notes logged yet.</p>`;
+
+      document.getElementById("incident-detail").innerHTML = `
+        <div class="border-b border-slate-800 pb-4 flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <div class="flex items-center gap-2 mb-1">
+              <span class="font-mono text-xs text-cyan-400">${inc.ticket_number}</span>
+              <span class="text-xs px-2 py-0.5 rounded border ${sevBadge(inc.severity)}">${inc.severity}</span>
+              <span class="text-xs px-2 py-0.5 rounded bg-slate-800 text-slate-300">Sentinel: ${inc.sentinel_status}</span>
+            </div>
+            <h2 class="text-lg font-bold text-white">${inc.title}</h2>
+            <p class="text-xs text-slate-400 mt-1">${inc.description || "No description provided."}</p>
+          </div>
+          <button onclick="runAiTriage('${inc.incident_id}')" id="btn-ai-triage"
+                  class="px-4 py-2 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-semibold text-xs shadow-lg">
+            ✦ Run Gemini AI Triage
+          </button>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-3 bg-slate-900/60 p-3 rounded-lg border border-slate-800">
+          <label class="text-xs text-slate-400">Assign Queue / Analyst:</label>
+          <select id="assign-select" class="bg-slate-950 border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white">
+            ${analystOptions}
+          </select>
+          <button onclick="assignTicket('${inc.incident_id}')" class="px-3 py-1.5 rounded bg-slate-800 hover:bg-slate-700 text-xs text-cyan-300 border border-slate-700">
+            Update Assignee
+          </button>
+        </div>
+
+        <div class="space-y-2">
+          <h3 class="text-xs font-semibold uppercase tracking-wider text-cyan-400">Gemini 3.5 Flash + 3-Query KQL Triage Report</h3>
+          <div id="ai-output" class="p-4 rounded-lg bg-slate-950 border border-slate-800 text-xs text-slate-200 leading-relaxed max-h-64 overflow-y-auto">
+            <pre>${inc.ai_analysis || "Click 'Run Gemini AI Triage' to execute 7-day anomaly decomposition, 1h host log correlation, and 24h alert context."}</pre>
+          </div>
+        </div>
+
+        <div class="space-y-3 border-t border-slate-800 pt-4">
+          <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-300">Bidirectional Sentinel Work Notes</h3>
+          <div class="flex flex-col sm:flex-row gap-2">
+            <input id="note-input" type="text" placeholder="Add investigation note (pushes live to Microsoft Sentinel)..."
+                   class="flex-1 bg-slate-950 border border-slate-700 rounded px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500" />
+            <select id="status-select" class="bg-slate-950 border border-slate-700 rounded px-2.5 py-2 text-xs text-white">
+              <option value="">Keep Status</option>
+              <option value="Active">Set Active</option>
+              <option value="Closed">Close (TruePositive)</option>
+            </select>
+            <button onclick="postWorkNote('${inc.incident_id}')" class="px-4 py-2 rounded bg-cyan-600 hover:bg-cyan-500 text-white font-medium text-xs">
+              Post & Sync
+            </button>
+          </div>
+          <div class="space-y-2 max-h-44 overflow-y-auto">${notesHtml}</div>
+        </div>
+      `;
+    }
+
+    async function assignTicket(id) {
+      const analyst_id = document.getElementById("assign-select").value;
+      await fetch(`${API_BASE}/api/incidents/${id}/assign`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ analyst_id })
+      });
+      await loadIncidents();
+    }
+
+    async function postWorkNote(id) {
+      const note = document.getElementById("note-input").value.trim();
+      const new_status = document.getElementById("status-select").value || null;
+      if (!note) return;
+      await fetch(`${API_BASE}/api/incidents/${id}/notes`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ author: "Mohan Krishna", note, new_status })
+      });
+      await loadIncidents();
+    }
+
+    async function runAiTriage(id) {
+      const btn = document.getElementById("btn-ai-triage");
+      const out = document.getElementById("ai-output");
+      btn.disabled = true;
+      btn.textContent = "⏳ Running 3 KQL Hunts + Gemini...";
+      out.innerHTML = `<span class="text-cyan-400">Querying Log Analytics (7d anomaly series, 1h SecurityEvent/Syslog, 24h alerts) and synthesizing triage report...</span>`;
+      try {
+        const res = await fetch(`${API_BASE}/api/incidents/${id}/ai-triage`, { method: "POST" });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || "Triage failed");
+        await loadIncidents();
+      } catch (err) {
+        out.innerHTML = `<span class="text-rose-400">Error: ${err.message}</span>`;
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "✦ Run Gemini AI Triage";
+      }
+    }
+
+    async function loadTopology() {
+      const res = await fetch(`${API_BASE}/api/lab/topology`);
+      const data = await res.json();
+      const vmHtml = data.virtual_machines.map(vm => {
+        const running = vm.power_state.toLowerCase().includes("running");
+        return `
+          <div class="panel p-4 space-y-3 glow-cyan">
+            <div class="flex items-center justify-between">
+              <span class="font-bold text-white">${vm.name}</span>
+              <span class="text-xs px-2 py-0.5 rounded ${running ? 'bg-emerald-500/20 text-emerald-300' : 'bg-slate-800 text-slate-400'}">
+                ${vm.power_state}
+              </span>
+            </div>
+            <div class="text-xs text-slate-400 space-y-1">
+              <div>OS: <span class="text-slate-200">${vm.os}</span></div>
+              <div>Private IP: <span class="font-mono text-cyan-300">${vm.private_ip}</span></div>
+            </div>
+            <div class="flex gap-2 pt-1">
+              <button onclick="toggleVm('${vm.name}', 'start')" class="flex-1 py-1.5 rounded bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/40 text-emerald-300 text-xs">
+                ▶ Start
+              </button>
+              <button onclick="toggleVm('${vm.name}', 'deallocate')" class="flex-1 py-1.5 rounded bg-rose-600/20 hover:bg-rose-600/30 border border-rose-500/40 text-rose-300 text-xs">
+                ■ Deallocate
+              </button>
+            </div>
+          </div>
+        `;
+      }).join("");
+
+      const agentsHtml = `
+        <div class="panel p-4 space-y-2">
+          <div class="font-bold text-white">Connected AMA Agents (24h Heartbeat)</div>
+          <div class="space-y-1.5 text-xs">
+            ${data.connected_agents_24h.map(a => `
+              <div class="flex justify-between p-2 rounded bg-slate-900 border border-slate-800">
+                <span class="text-cyan-300 font-mono">${a.Computer}</span>
+                <span class="text-slate-400">${new Date(a.LastSeen).toLocaleTimeString()}</span>
+              </div>
+            `).join("")}
+          </div>
+        </div>
+      `;
+      document.getElementById("vm-cards").innerHTML = vmHtml + agentsHtml;
+    }
+
+    async function toggleVm(name, action) {
+      await fetch(`${API_BASE}/api/vms/${name}/${action}`, { method: "POST" });
+      alert(`${action.toUpperCase()} command sent to ${name}. Azure ARM state will update in ~20 seconds.`);
+      setTimeout(loadTopology, 5000);
+    }
+
+    async function loadKqlSandbox() {
+      const res = await fetch(`${API_BASE}/api/lab/kql-sandbox`);
+      const data = await res.json();
+      document.getElementById("kql-sandbox-box").innerHTML = `
+        <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 pb-4">
+          <div>
+            <h2 class="text-lg font-bold text-white">Read-Only Microsoft Sentinel KQL Hunt Sandbox</h2>
+            <p class="text-xs text-slate-400">RBAC Scoped: ${data.rbac_roles.join(" + ")}</p>
+          </div>
+          <a href="${data.portal_url}" target="_blank" class="px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold">
+            Launch Azure Sentinel Logs ↗
+          </a>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+          <div class="p-3 rounded bg-slate-950 border border-slate-800">
+            <span class="text-slate-400">Viewer UPN:</span> <code class="text-cyan-300 select-all">${data.username}</code>
+          </div>
+          <div class="p-3 rounded bg-slate-950 border border-slate-800">
+            <span class="text-slate-400">Viewer Password:</span> <code class="text-cyan-300 select-all">${data.password}</code>
+          </div>
+        </div>
+        <div class="space-y-3">
+          ${data.sample_queries.map(q => `
+            <div class="p-4 rounded-lg bg-slate-950 border border-slate-800 space-y-2">
+              <div class="flex justify-between items-center">
+                <span class="text-xs font-semibold text-white">${q.title}</span>
+                <button onclick="navigator.clipboard.writeText(\`${q.kql}\`)" class="text-xs text-cyan-400 hover:underline">Copy KQL</button>
+              </div>
+              <pre class="text-xs font-mono text-emerald-300">${q.kql}</pre>
+            </div>
+          `).join("")}
+        </div>
+      `;
+    }
+
+    checkHealth();
+    loadIncidents();
+  </script>
+</body>
+</html>
