@@ -5,110 +5,169 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>MKRYPT // Autonomous SOC Workbench</title>
   <style>
+    /* === 2-COLOR MODERN PALETTE: MIDNIGHT OBSIDIAN + ELECTRIC CYAN / SLATE HUES === */
     :root {
-      --bg: #070b14; --panel: #0d1424; --panel-2: #111b2e; --border: #1e2d4a;
-      --cyan: #06b6d4; --blue: #3b82f6; --green: #10b981; --amber: #f59e0b;
-      --red: #ef4444; --purple: #a855f7; --text: #e2e8f0; --muted: #94a3b8;
+      --bg: #070b14;
+      --surface-1: #0c1322;
+      --surface-2: #111b2f;
+      --surface-3: #16233d;
+      --border: #1e2e4d;
+      --cyan: #06b6d4;
+      --cyan-dim: rgba(6, 182, 212, 0.14);
+      --cyan-border: rgba(6, 182, 212, 0.42);
+      --slate-hue: #818cf8;
+      --slate-dim: rgba(129, 140, 248, 0.12);
+      --slate-border: rgba(129, 140, 248, 0.35);
+      --text: #e2e8f0;
+      --muted: #8b9bb4;
+      --danger: #f43f5e;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
     body { background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    /* Top Navigation */
     .topbar {
       display: flex; align-items: center; justify-content: space-between; gap: 12px;
-      padding: 14px 24px; background: var(--panel); border-bottom: 1px solid var(--border); flex-wrap: wrap;
+      padding: 14px 24px; background: var(--surface-1); border-bottom: 1px solid var(--border); flex-wrap: wrap;
     }
     .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; letter-spacing: 0.08em; color: var(--cyan); }
-    .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--cyan); box-shadow: 0 0 10px var(--cyan); }
-    .badge { font-size: 11px; padding: 4px 10px; border-radius: 999px; background: #132238; border: 1px solid var(--border); color: var(--muted); }
+    .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--cyan); box-shadow: 0 0 12px var(--cyan); }
+    .badge { font-size: 11px; padding: 4px 10px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--border); color: var(--muted); }
     .nav-tabs { display: flex; gap: 8px; flex-wrap: wrap; }
     .tab-btn {
-      background: var(--panel-2); color: var(--muted); border: 1px solid var(--border);
-      padding: 8px 14px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 13px; transition: 0.15s;
+      background: var(--surface-2); color: var(--muted); border: 1px solid var(--border);
+      padding: 8px 14px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 13px; transition: 0.18s;
     }
-    .tab-btn.active { background: var(--blue); color: #fff; border-color: var(--blue); }
-    .status-pill { font-size: 12px; padding: 6px 12px; border-radius: 999px; background: rgba(16,185,129,0.12); color: var(--green); border: 1px solid rgba(16,185,129,0.35); }
-    .container { padding: 20px 24px; max-width: 1600px; margin: 0 auto; }
+    .tab-btn:hover { color: var(--text); border-color: var(--cyan-border); }
+    .tab-btn.active { background: var(--cyan-dim); color: var(--cyan); border-color: var(--cyan); }
+    .status-pill { font-size: 12px; padding: 6px 12px; border-radius: 999px; background: var(--cyan-dim); color: var(--cyan); border: 1px solid var(--cyan-border); }
+
+    .container { padding: 20px 24px; max-width: 1620px; margin: 0 auto; }
     .view { display: none; }
     .view.active { display: block; }
 
-    /* Workbench Split */
-    .split { display: grid; grid-template-columns: 390px 1fr; gap: 20px; align-items: start; }
+    /* Split Workbench */
+    .split { display: grid; grid-template-columns: 385px 1fr; gap: 20px; align-items: start; }
     @media (max-width: 1050px) { .split { grid-template-columns: 1fr; } }
-    .card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 18px; }
-    .card-hdr { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
-    .queue-list { display: flex; flex-direction: column; gap: 10px; max-height: 76vh; overflow-y: auto; padding-right: 4px; }
+    .card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 14px; padding: 18px; }
+    .card-hdr { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; gap: 10px; flex-wrap: wrap; }
+
+    /* Left Incident Queue */
+    .queue-list { display: flex; flex-direction: column; gap: 10px; max-height: 78vh; overflow-y: auto; padding-right: 4px; }
     .inc-item {
-      background: var(--panel-2); border: 1px solid var(--border); border-radius: 10px; padding: 12px;
-      cursor: pointer; transition: 0.15s;
+      background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; padding: 12px;
+      cursor: pointer; transition: 0.16s;
     }
-    .inc-item:hover, .inc-item.selected { border-color: var(--cyan); background: #13213a; }
-    .inc-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 12px; }
-    .inc-id { color: var(--cyan); font-weight: 700; }
-    .sev { padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; }
-    .sev-High { background: rgba(239,68,68,0.18); color: var(--red); border: 1px solid rgba(239,68,68,0.4); }
-    .sev-Medium { background: rgba(245,158,11,0.18); color: var(--amber); border: 1px solid rgba(245,158,11,0.4); }
-    .sev-Low, .sev-Informational { background: rgba(59,130,246,0.18); color: var(--blue); border: 1px solid rgba(59,130,246,0.4); }
+    .inc-item:hover, .inc-item.selected { border-color: var(--cyan); background: var(--surface-3); }
+    .inc-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 11px; gap: 6px; }
+    .inc-id { color: var(--cyan); font-weight: 700; font-family: ui-monospace, monospace; }
+    .sev-pill { padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; background: var(--slate-dim); color: var(--slate-hue); border: 1px solid var(--slate-border); }
+    .sla-tag { font-weight: 700; padding: 2px 7px; border-radius: 5px; font-size: 10px; background: var(--cyan-dim); color: var(--cyan); border: 1px solid var(--cyan-border); }
+    .sla-tag.breach { background: rgba(244,63,94,0.14); color: var(--danger); border-color: rgba(244,63,94,0.4); }
     .inc-title { font-size: 13px; font-weight: 600; margin-bottom: 8px; line-height: 1.35; }
     .inc-meta { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); flex-wrap: wrap; gap: 4px; }
-    .sla-tag { font-weight: 700; padding: 2px 6px; border-radius: 4px; font-size: 10px; }
-    .sla-ok { background: rgba(16,185,129,0.15); color: var(--green); }
-    .sla-warn { background: rgba(245,158,11,0.15); color: var(--amber); }
-    .sla-breach { background: rgba(239,68,68,0.2); color: var(--red); }
 
-    /* Controls & Inputs */
+    /* Unified 2-Color Buttons & Inputs */
     .btn {
-      background: var(--blue); color: #fff; border: none; padding: 8px 14px; border-radius: 8px;
-      font-weight: 600; font-size: 12px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+      background: var(--cyan); color: #041019; border: 1px solid var(--cyan); padding: 8px 14px; border-radius: 8px;
+      font-weight: 700; font-size: 12px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: 0.15s;
     }
-    .btn:hover { filter: brightness(1.1); }
-    .btn-cyan { background: var(--cyan); color: #041019; }
-    .btn-purple { background: var(--purple); color: #fff; }
-    .btn-red { background: var(--red); color: #fff; }
-    .btn-green { background: var(--green); color: #041019; }
-    .btn-ghost { background: var(--panel-2); color: var(--text); border: 1px solid var(--border); }
+    .btn:hover { filter: brightness(1.08); }
+    .btn:disabled { opacity: 0.42; cursor: not-allowed; filter: none; }
+    .btn-slate { background: var(--slate-dim); color: var(--slate-hue); border: 1px solid var(--slate-border); }
+    .btn-slate:hover { background: rgba(129,140,248,0.2); }
+    .btn-ghost { background: var(--surface-2); color: var(--text); border: 1px solid var(--border); }
+    .btn-ghost:hover { border-color: var(--cyan-border); color: var(--cyan); }
+    .btn-danger { background: rgba(244,63,94,0.14); color: var(--danger); border: 1px solid rgba(244,63,94,0.4); }
+    .btn-icon { width: 34px; height: 34px; padding: 0; justify-content: center; font-size: 18px; border-radius: 8px; }
+
     input, select, textarea {
-      background: #080d18; color: var(--text); border: 1px solid var(--border);
-      border-radius: 8px; padding: 8px 10px; font-size: 13px; width: 100%;
+      background: #080e1a; color: var(--text); border: 1px solid var(--border);
+      border-radius: 8px; padding: 8px 10px; font-size: 13px; width: 100%; outline: none;
     }
+    input:focus, select:focus, textarea:focus { border-color: var(--cyan); }
     .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-    .section-box { background: var(--panel-2); border: 1px solid var(--border); border-radius: 10px; padding: 14px; margin-top: 14px; }
-    .section-lbl { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; color: var(--cyan); text-transform: uppercase; margin-bottom: 10px; }
 
-    /* IR Stepper */
-    .stepper { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 12px; }
-    @media (max-width: 760px) { .stepper { grid-template-columns: 1fr; } }
+    /* Modern Sub-Panels */
+    .section-box {
+      background: linear-gradient(180deg, var(--surface-2) 0%, #0d1628 100%);
+      border: 1px solid var(--border); border-radius: 12px; padding: 15px; margin-top: 14px;
+    }
+    .section-lbl { font-size: 11px; font-weight: 700; letter-spacing: 0.07em; color: var(--cyan); text-transform: uppercase; margin-bottom: 10px; }
+
+    /* Top-Right Compact Assignee Widget */
+    .top-assign-bar {
+      display: flex; align-items: center; gap: 6px; background: var(--surface-2);
+      border: 1px solid var(--border); padding: 4px 6px; border-radius: 10px;
+    }
+    .top-assign-bar select { background: transparent; border: none; padding: 4px 8px; font-size: 12px; min-width: 195px; color: var(--text); }
+
+    /* Modern 2-Color IR Stepper */
+    .stepper { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+    @media (max-width: 780px) { .stepper { grid-template-columns: 1fr; } }
     .step-node {
-      padding: 8px; border-radius: 8px; border: 1px solid var(--border); background: #09101f;
-      font-size: 11px; text-align: center; cursor: pointer;
+      padding: 10px 8px; border-radius: 10px; border: 1px solid var(--border); background: #080e1a;
+      font-size: 11px; text-align: center; cursor: pointer; transition: 0.16s; position: relative;
     }
-    .step-node.done { border-color: var(--green); background: rgba(16,185,129,0.12); color: var(--green); }
-    .step-node.current { border-color: var(--cyan); background: rgba(6,182,212,0.15); color: #fff; font-weight: 700; }
-    .step-node.picked { outline: 2px solid var(--amber); }
+    .step-node:hover { border-color: var(--cyan); transform: translateY(-1px); }
+    .step-node.done { border-color: var(--cyan-border); background: var(--cyan-dim); color: var(--cyan); }
+    .step-node.current { border-color: var(--cyan); background: rgba(6,182,212,0.22); color: #fff; font-weight: 700; box-shadow: 0 0 14px rgba(6,182,212,0.16); }
+    .step-node.next-target { border-color: var(--slate-hue); background: var(--slate-dim); color: var(--slate-hue); font-weight: 700; }
 
-    /* AI Box & Work Notes */
+    /* Terminal / Report Boxes */
     .mono-box {
-      background: #060a12; border: 1px solid var(--border); border-radius: 8px; padding: 12px;
+      background: #060a12; border: 1px solid var(--border); border-radius: 9px; padding: 12px;
       font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; line-height: 1.55;
-      white-space: pre-wrap; max-height: 290px; overflow-y: auto; color: #cbd5e1;
+      white-space: pre-wrap; max-height: 310px; overflow-y: auto; color: #cbd5e1;
     }
-    .note-card { background: #080e1a; border: 1px solid var(--border); border-radius: 8px; padding: 10px; margin-top: 8px; font-size: 12px; }
-    .note-hdr { display: flex; justify-content: space-between; color: var(--cyan); font-size: 11px; margin-bottom: 4px; }
+    .note-card {
+      background: #080e1a; border-left: 3px solid var(--cyan); border-top: 1px solid var(--border);
+      border-right: 1px solid var(--border); border-bottom: 1px solid var(--border);
+      border-radius: 8px; padding: 10px 12px; margin-top: 8px; font-size: 12px;
+    }
+    .note-hdr { display: flex; justify-content: space-between; color: var(--cyan); font-size: 11px; margin-bottom: 5px; }
+    .note-stage-pill { background: var(--slate-dim); color: var(--slate-hue); border: 1px solid var(--slate-border); padding: 1px 7px; border-radius: 4px; font-size: 10px; margin-left: 6px; }
     .note-img { max-width: 100%; max-height: 220px; border-radius: 6px; margin-top: 8px; border: 1px solid var(--border); cursor: zoom-in; }
 
+    /* Connected AMA Agents List (Matches Screenshot 1) */
+    .agent-list { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+    .agent-row {
+      display: flex; justify-content: space-between; align-items: center;
+      background: #080e1a; border: 1px solid var(--border); border-radius: 8px;
+      padding: 12px 16px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px;
+    }
+    .agent-name { color: var(--cyan); font-weight: 600; }
+    .agent-time { color: var(--muted); }
+
+    /* Read-Only KQL Sandbox (Matches Screenshot 2) */
+    .cred-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 14px 0; }
+    @media (max-width: 700px) { .cred-grid { grid-template-columns: 1fr; } }
+    .cred-box {
+      background: #080e1a; border: 1px solid var(--border); border-radius: 8px;
+      padding: 12px 14px; font-size: 12px; color: var(--muted);
+    }
+    .cred-box span { color: var(--cyan); font-family: ui-monospace, monospace; font-weight: 600; margin-left: 4px; }
+    .preset-card {
+      background: #080e1a; border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; margin-top: 10px;
+    }
+    .preset-hdr { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 13px; font-weight: 700; }
+    .preset-kql { font-family: ui-monospace, monospace; font-size: 12px; color: var(--cyan); word-break: break-all; }
+
     /* Metrics Grid */
-    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; margin-bottom: 18px; }
-    .kpi { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-bottom: 18px; }
+    .kpi { background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
     .kpi-val { font-size: 28px; font-weight: 800; color: var(--cyan); margin: 6px 0; }
     table { width: 100%; border-collapse: collapse; font-size: 12px; }
     th, td { padding: 10px; border-bottom: 1px solid var(--border); text-align: left; }
-    th { color: var(--cyan); background: var(--panel-2); }
+    th { color: var(--cyan); background: var(--surface-2); }
 
-    /* Modal */
+    /* Popups / Modals */
     .modal-backdrop {
-      position: fixed; inset: 0; background: rgba(0,0,0,0.75); display: none;
-      align-items: center; justify-content: center; z-index: 999; padding: 16px;
+      position: fixed; inset: 0; background: rgba(3, 6, 12, 0.8); backdrop-filter: blur(4px);
+      display: none; align-items: center; justify-content: center; z-index: 999; padding: 16px;
     }
     .modal-backdrop.open { display: flex; }
-    .modal { background: var(--panel); border: 1px solid var(--cyan); border-radius: 12px; padding: 20px; max-width: 440px; width: 100%; }
+    .modal { background: var(--surface-1); border: 1px solid var(--cyan-border); border-radius: 14px; padding: 20px; max-width: 470px; width: 100%; box-shadow: 0 20px 50px rgba(0,0,0,0.6); }
   </style>
 </head>
 <body>
@@ -152,7 +211,7 @@
     <div id="tab-metrics" class="view">
       <div class="card-hdr">
         <h2>SOC Incident Response Performance &amp; SLA Ledger</h2>
-        <button class="btn btn-cyan" onclick="loadMetrics()">&#8635; Recalculate KPIs</button>
+        <button class="btn" onclick="loadMetrics()">&#8635; Recalculate KPIs</button>
       </div>
       <div class="kpi-grid">
         <div class="kpi"><div style="font-size:11px;color:var(--muted);">MTTA (Mean Time to Acknowledge)</div><div class="kpi-val" id="kpiMtta">--</div><div style="font-size:11px;color:var(--muted);">Alert Created &rarr; Analyst Ack</div></div>
@@ -171,76 +230,116 @@
       </div>
     </div>
 
-    <!-- TAB 3: AZURE LAB TOPOLOGY & PROTECTED VM CONTROLS -->
+    <!-- TAB 3: AZURE LAB TOPOLOGY & CONNECTED AMA AGENTS -->
     <div id="tab-lab" class="view">
       <div class="card-hdr">
         <h2>Azure SOC Lab Infrastructure &amp; Live Consoles</h2>
         <div class="row">
           <a class="btn btn-ghost" id="ttydLink" target="_blank">Open VM-1 Shell (ttyd)</a>
           <a class="btn btn-ghost" id="novncLink" target="_blank">Open Win-Victim-01 Console (noVNC)</a>
-          <button class="btn btn-cyan" onclick="loadTopology()">&#8635; Refresh VMs</button>
+          <button class="btn" onclick="loadTopology()">&#8635; Refresh VMs</button>
         </div>
       </div>
       <div id="vmGrid" class="kpi-grid"></div>
       <div class="card" style="margin-top:16px;">
-        <div class="section-lbl">Log Analytics Agent Heartbeats (Last 24h)</div>
-        <div id="hbBox" class="mono-box">Loading heartbeats...</div>
+        <h3 style="font-size:16px;margin-bottom:4px;">Connected AMA Agents (24h Heartbeat)</h3>
+        <div id="hbList" class="agent-list">Loading heartbeats...</div>
       </div>
     </div>
 
-    <!-- TAB 4: KQL SANDBOX -->
+    <!-- TAB 4: READ-ONLY MICROSOFT SENTINEL KQL HUNT SANDBOX -->
     <div id="tab-kql" class="view">
       <div class="card">
-        <div class="card-hdr">
-          <h3>Microsoft Sentinel KQL Threat Hunt Sandbox</h3>
-          <div id="kqlPresets" class="row"></div>
+        <div class="card-hdr" style="margin-bottom:6px;">
+          <div>
+            <h2 style="font-size:18px;">Read-Only Microsoft Sentinel KQL Hunt Sandbox</h2>
+            <p style="font-size:12px;color:var(--muted);margin-top:3px;">RBAC Scoped: Microsoft Sentinel Reader + Log Analytics Reader</p>
+          </div>
+          <a class="btn" href="https://portal.azure.com/#view/Microsoft_Azure_Security_Insights/MainMenuBlade/~/0" target="_blank">Launch Azure Sentinel Logs &#8599;</a>
         </div>
-        <textarea id="kqlInput" rows="4" style="font-family:monospace;margin-bottom:10px;">SecurityEvent | where EventID == 4625 | summarize Attempts=count() by TargetAccount, Computer | top 15 by Attempts desc</textarea>
-        <div class="row">
-          <select id="kqlSpan" style="width:160px;">
-            <option value="PT1H">Last 1 Hour</option>
-            <option value="PT24H" selected>Last 24 Hours</option>
-            <option value="P7D">Last 7 Days</option>
-          </select>
-          <button class="btn btn-cyan" onclick="runKqlQuery()">Execute KQL Query</button>
+
+        <div class="cred-grid">
+          <div class="cred-box">Viewer UPN: <span id="sandboxUpn">soc-viewer@mkrypt.local</span></div>
+          <div class="cred-box">Viewer Password: <span id="sandboxPass">ReadOnlySoc@2026</span></div>
         </div>
-        <div id="kqlResult" class="mono-box" style="margin-top:12px;">Query output will appear here...</div>
+
+        <div id="kqlPresetCards"></div>
+
+        <div class="section-box" style="margin-top:16px;">
+          <div class="section-lbl">Direct Workspace KQL Runner</div>
+          <textarea id="kqlInput" rows="3" style="font-family:monospace;margin-bottom:10px;">SecurityEvent | where EventID == 4625 | summarize Attempts=count() by TargetAccount, IpAddress | top 15 by Attempts desc</textarea>
+          <div class="row">
+            <select id="kqlSpan" style="width:160px;">
+              <option value="PT1H">Last 1 Hour</option>
+              <option value="PT24H" selected>Last 24 Hours</option>
+              <option value="P7D">Last 7 Days</option>
+            </select>
+            <button class="btn" onclick="runKqlQuery()">Execute KQL Query</button>
+          </div>
+          <div id="kqlResult" class="mono-box" style="margin-top:12px;">Select "Load &amp; Run" on a hunt above or execute any custom KQL query...</div>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- MODAL: REGISTER NEW ANALYST (NO AD REQUIRED) -->
+  <!-- MODAL 1: STAGE CHANGE POPUP -->
+  <div id="stageModal" class="modal-backdrop">
+    <div class="modal">
+      <h3 style="color:var(--cyan);margin-bottom:6px;">Transition IR Phase &rarr; <span id="modalStageTitle">Acknowledgement</span></h3>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:12px;">Assignee: <b id="modalStageAssignee" style="color:var(--text);"></b> · Syncs directly to Microsoft Sentinel.</p>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div id="modalClassWrap" style="display:none;">
+          <label style="font-size:11px;color:var(--cyan);display:block;margin-bottom:4px;">SENTINEL CLOSURE CLASSIFICATION</label>
+          <select id="modalClassSelect">
+            <option value="TruePositive">TruePositive - Suspicious Activity</option>
+            <option value="BenignPositive">BenignPositive - Suspicious But Expected</option>
+            <option value="FalsePositive">FalsePositive - Incorrect Alert Logic</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--cyan);display:block;margin-bottom:4px;">MANDATORY PHASE JUSTIFICATION</label>
+          <textarea id="modalStageJustification" rows="3" placeholder="Document findings, containment action, or closure summary (min 5 chars)..."></textarea>
+        </div>
+        <div class="row" style="justify-content:flex-end;margin-top:6px;">
+          <button class="btn btn-ghost" onclick="closeModal('stageModal')">Cancel</button>
+          <button class="btn" onclick="confirmStageModal()">Commit Phase &amp; Sync</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 2: REGISTER NEW ANALYST (NO AD REQUIRED) -->
   <div id="analystModal" class="modal-backdrop">
     <div class="modal">
-      <h3 style="margin-bottom:12px;color:var(--cyan);">Register Local SOC Analyst</h3>
-      <p style="font-size:12px;color:var(--muted);margin-bottom:12px;">Creates an immediate local responder profile in SQLite without requiring Microsoft Entra ID / AD.</p>
+      <h3 style="margin-bottom:8px;color:var(--cyan);">Register Local SOC Analyst</h3>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:12px;">Adds a local responder profile in SQLite without requiring Microsoft Entra ID / AD.</p>
       <div style="display:flex;flex-direction:column;gap:10px;">
         <input id="newAnalystName" placeholder="Full Name (e.g., Kavya R.)" />
         <input id="newAnalystRole" placeholder="Role (e.g., L2 Incident Responder)" value="L2 Incident Responder" />
         <input id="newAnalystEmail" placeholder="Email (e.g., kavya@mkrypt.local)" />
         <div class="row" style="justify-content:flex-end;margin-top:6px;">
           <button class="btn btn-ghost" onclick="closeModal('analystModal')">Cancel</button>
-          <button class="btn btn-cyan" onclick="submitNewAnalyst()">Save Analyst</button>
+          <button class="btn" onclick="submitNewAnalyst()">Save Analyst</button>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- MODAL: PASSWORD GATE TO DISABLE VM-1 -->
+  <!-- MODAL 3: PASSWORD GATE TO DISABLE VM-1 -->
   <div id="vmPassModal" class="modal-backdrop">
     <div class="modal">
-      <h3 style="margin-bottom:8px;color:var(--red);">&#9888; Protected Infrastructure Lock (VM-1)</h3>
+      <h3 style="margin-bottom:8px;color:var(--danger);">&#9888; Protected Infrastructure Lock (VM-1)</h3>
       <p style="font-size:12px;color:var(--muted);margin-bottom:12px;">VM-1 hosts the MKRYPT FastAPI backend and Cloudflare tunnels. Enter the Admin Secret Key to authorize deallocation.</p>
       <input id="vmAdminPassInput" type="password" placeholder="Enter VM_ADMIN_SECRET..." />
       <div class="row" style="justify-content:flex-end;margin-top:12px;">
         <button class="btn btn-ghost" onclick="closeModal('vmPassModal')">Cancel</button>
-        <button class="btn btn-red" onclick="confirmVm1Deallocate()">Confirm Deallocate VM-1</button>
+        <button class="btn btn-danger" onclick="confirmVm1Deallocate()">Confirm Deallocate VM-1</button>
       </div>
     </div>
   </div>
 
   <script>
-    // === LIVE ENDPOINT CONFIGURATION (Keep your active tunnel URLs) ===
+    // === LIVE ENDPOINT CONFIGURATION ===
     const API_BASE = "https://bag-pole-live-pretty.trycloudflare.com";
     const LINUX_TTYD_URL = "https://belkin-comedy-andrew-surprise.trycloudflare.com";
     const WIN_NOVNC_URL = "https://charger-extended-moisture-admissions.trycloudflare.com/vnc.html?autoconnect=true";
@@ -249,7 +348,7 @@
     let incidents = [];
     let analysts = [];
     let selectedId = null;
-    let pickedStage = null;
+    let modalTargetStage = "Acknowledgement";
     let pendingScreenshotB64 = null;
     let pendingScreenshotName = null;
 
@@ -263,7 +362,7 @@
       btn.classList.add("active");
       if (name === "metrics") loadMetrics();
       if (name === "lab") loadTopology();
-      if (name === "kql") loadKqlPresets();
+      if (name === "kql") loadKqlSandbox();
     }
 
     function openModal(id) { document.getElementById(id).classList.add("open"); }
@@ -276,7 +375,7 @@
     }
 
     function computeSlaClock(inc) {
-      if (!inc.created_time) return { text: "No timestamp", cls: "sla-ok" };
+      if (!inc.created_time) return { text: "No timestamp", cls: "" };
       const createdMs = new Date(inc.created_time).getTime();
       const ackIso = inc.ir_timestamps?.Acknowledgement || inc.ir_timestamps?.Resolution;
       const endMs = ackIso ? new Date(ackIso).getTime() : Date.now();
@@ -285,12 +384,18 @@
       const rem = slaMins - elapsedMins;
       if (ackIso) {
         return rem >= 0
-          ? { text: `ACKED (${elapsedMins}m / ${slaMins}m)`, cls: "sla-ok" }
-          : { text: `BREACHED (+${Math.abs(rem)}m)`, cls: "sla-breach" };
+          ? { text: `ACKED (${elapsedMins}m / ${slaMins}m)`, cls: "" }
+          : { text: `BREACHED (+${Math.abs(rem)}m)`, cls: "breach" };
       }
-      if (rem < 0) return { text: `SLA BREACHED (-${Math.abs(rem)}m)`, cls: "sla-breach" };
-      if (rem <= 10) return { text: `SLA: ${rem}m left`, cls: "sla-warn" };
-      return { text: `SLA: ${rem}m left (${elapsedMins}m age)`, cls: "sla-ok" };
+      if (rem < 0) return { text: `SLA BREACHED (-${Math.abs(rem)}m)`, cls: "breach" };
+      return { text: `SLA: ${rem}m left (${elapsedMins}m age)`, cls: "" };
+    }
+
+    function getNextStage(inc) {
+      const cur = inc.ir_stage || "Assignment";
+      if (cur === "Assignment" && inc.assigned_to && inc.assigned_to !== "T1-Triage-Bin") return "Acknowledgement";
+      const idx = IR_STAGES.indexOf(cur);
+      return idx >= 0 && idx < IR_STAGES.length - 1 ? IR_STAGES[idx + 1] : "Resolution";
     }
 
     async function checkHealth() {
@@ -300,7 +405,7 @@
         document.getElementById("healthPill").textContent = `● SOC API Online (${d.resource_group})`;
       } catch {
         document.getElementById("healthPill").textContent = "● API Unreachable";
-        document.getElementById("healthPill").style.color = "var(--red)";
+        document.getElementById("healthPill").style.color = "var(--danger)";
       }
     }
 
@@ -342,7 +447,7 @@
             <div class="inc-top">
               <span class="inc-id">${inc.ticket_number}</span>
               <span class="sla-tag ${sla.cls}">${sla.text}</span>
-              <span class="sev sev-${inc.severity}">${inc.severity}</span>
+              <span class="sev-pill">${inc.severity}</span>
             </div>
             <div class="inc-title">${inc.title}</div>
             <div class="inc-meta">
@@ -359,7 +464,6 @@
 
     function selectIncident(id) {
       selectedId = id;
-      pickedStage = null;
       pendingScreenshotB64 = null;
       pendingScreenshotName = null;
       renderQueue();
@@ -371,7 +475,8 @@
       const pane = document.getElementById("detailPane");
       if (!inc) return;
       const sla = computeSlaClock(inc);
-      const activeStage = pickedStage || inc.ir_stage || "Assignment";
+      const isCompleted = inc.sentinel_status === "Closed" || inc.ir_stage === "Resolution";
+      const nextStage = getNextStage(inc);
       const curIdx = IR_STAGES.indexOf(inc.ir_stage || "Assignment");
 
       const analystOpts = analysts.map(a =>
@@ -380,93 +485,144 @@
 
       const stepperHtml = IR_STAGES.map((st, idx) => {
         const ts = inc.ir_timestamps?.[st];
-        const cls = idx < curIdx ? "done" : (idx === curIdx ? "current" : "");
-        const pickedCls = st === activeStage ? "picked" : "";
-        return `<div class="step-node ${cls} ${pickedCls}" onclick="pickStage('${st}')">
+        let cls = "";
+        if (idx < curIdx || (st === "Resolution" && isCompleted)) cls = "done";
+        else if (idx === curIdx) cls = "current";
+        else if (st === nextStage && !isCompleted) cls = "next-target";
+        return `<div class="step-node ${cls}" onclick="openStageModal('${st}')">
           <div>${idx + 1}. ${st}</div>
-          <div style="font-size:10px;opacity:0.8;margin-top:3px;">${ts ? formatUtc(ts) : 'Pending'}</div>
+          <div style="font-size:10px;opacity:0.8;margin-top:3px;">${ts ? formatUtc(ts) : (st === nextStage && !isCompleted ? 'Next Step' : 'Pending')}</div>
         </div>`;
       }).join("");
 
       const notesHtml = (inc.work_notes || []).map(n => `
         <div class="note-card">
-          <div class="note-hdr"><span><b>${n.author}</b></span><span>${formatUtc(n.created_at)} · Synced</span></div>
+          <div class="note-hdr">
+            <span><b>${n.author}</b><span class="note-stage-pill">${n.stage_tag || 'General'}</span></span>
+            <span>${formatUtc(n.created_at)} · Synced</span>
+          </div>
           <div>${n.note}</div>
           ${n.screenshot_b64 ? `<img class="note-img" src="${n.screenshot_b64}" title="${n.screenshot_name || 'Evidence'}" onclick="window.open(this.src)" />` : ''}
         </div>
       `).join("") || `<div style="color:var(--muted);font-size:12px;">No work notes or evidence logged yet.</div>`;
 
       pane.innerHTML = `
+        <!-- HEADER WITH TOP-RIGHT ASSIGNEE & '+' REGISTER BUTTON -->
         <div class="row" style="justify-content:space-between;margin-bottom:8px;">
           <div class="row">
             <span class="inc-id" style="font-size:14px;">${inc.ticket_number}</span>
-            <span class="sev sev-${inc.severity}">${inc.severity}</span>
+            <span class="sev-pill">${inc.severity}</span>
             <span class="badge">Sentinel: ${inc.sentinel_status}</span>
             <span class="sla-tag ${sla.cls}">${sla.text}</span>
           </div>
-          <span style="font-size:12px;color:var(--muted);">Created: ${formatUtc(inc.created_time)}</span>
-        </div>
-        <h2 style="font-size:19px;margin-bottom:6px;">${inc.title}</h2>
-        <p style="font-size:13px;color:var(--muted);margin-bottom:14px;">${inc.description || 'No description provided.'}</p>
-
-        <div class="row" style="margin-bottom:14px;">
-          <button class="btn btn-blue" onclick="runAiTriage('${inc.incident_id}')">&#10022; Run Gemini AI Triage</button>
-          <button class="btn btn-purple" onclick="runQaAudit('${inc.incident_id}')">&#9733; Audit IR &amp; Score Assignee (${inc.assigned_to})</button>
-        </div>
-
-        <!-- 1 & 2: IR WORKFLOW STEPPER + ASSIGNEE + JUSTIFICATION -->
-        <div class="section-box">
-          <div class="row" style="justify-content:space-between;margin-bottom:8px;">
-            <div class="section-lbl" style="margin:0;">Incident Response Lifecycle &amp; Assignment</div>
-            <button class="btn btn-ghost" style="padding:4px 10px;font-size:11px;" onclick="openModal('analystModal')">+ Register New Analyst</button>
-          </div>
-          <div class="stepper">${stepperHtml}</div>
-          <div class="row" style="margin-bottom:8px;">
-            <select id="assigneeSelect" style="flex:1;min-width:210px;">${analystOpts}</select>
-            <select id="stageSelect" style="width:190px;" onchange="pickStage(this.value)">
-              ${IR_STAGES.map(s => `<option value="${s}" ${s === activeStage ? 'selected' : ''}>Move to: ${s}</option>`).join("")}
-            </select>
-          </div>
-          ${activeStage === 'Resolution' ? `
-          <div class="row" style="margin-bottom:8px;">
-            <select id="classSelect" style="flex:1;">
-              <option value="TruePositive">TruePositive - Suspicious Activity</option>
-              <option value="BenignPositive">BenignPositive - Suspicious But Expected</option>
-              <option value="FalsePositive">FalsePositive - Incorrect Alert Logic</option>
-            </select>
-          </div>` : ''}
-          <div class="row">
-            <input id="stageJustification" style="flex:1;" placeholder="Mandatory justification for moving to ${activeStage} (syncs to Sentinel)..." />
-            <button class="btn btn-cyan" onclick="submitStageTransition('${inc.incident_id}')">Commit Phase &amp; Sync</button>
+          <div class="top-assign-bar">
+            <select id="topAssigneeSelect" onchange="quickAssignTicket('${inc.incident_id}', this.value)">${analystOpts}</select>
+            <button class="btn btn-slate btn-icon" title="Register New Analyst (No AD Required)" onclick="openModal('analystModal')">+</button>
           </div>
         </div>
 
-        <!-- GEMINI TRIAGE & NIST QA AUDIT OUTPUT -->
+        <div class="row" style="justify-content:space-between;margin-bottom:12px;">
+          <div>
+            <h2 style="font-size:19px;margin-bottom:4px;">${inc.title}</h2>
+            <p style="font-size:13px;color:var(--muted);">${inc.description || 'No description provided.'}</p>
+          </div>
+          <span style="font-size:11px;color:var(--muted);">Created: ${formatUtc(inc.created_time)}</span>
+        </div>
+
+        <!-- ACTION BUTTONS -->
+        <div class="row" style="margin-bottom:12px;">
+          <button class="btn" onclick="runAiTriage('${inc.incident_id}')">&#10022; Run Gemini AI Triage</button>
+          <button class="btn btn-slate" onclick="runQaAudit('${inc.incident_id}')">&#9733; Audit IR &amp; Score (${inc.assigned_to})</button>
+          ${!isCompleted ? `<button class="btn btn-ghost" onclick="openStageModal('${nextStage}')">Advance to ${nextStage} &rarr;</button>` : ''}
+          ${(isCompleted || inc.qa_audit) ? `<button class="btn btn-ghost" onclick="downloadShowcaseReport('${inc.incident_id}')">&#11015; Download Full IR Report</button>` : ''}
+        </div>
+
+        <!-- GEMINI TRIAGE & L2 POST-INVESTIGATION AUDIT DIRECTLY UNDER ACTION BUTTONS -->
         <div class="section-box">
           <div class="section-lbl">Gemini 3.5 Flash Triage Report</div>
           <div id="aiTriageBox" class="mono-box">${inc.ai_analysis || "Click 'Run Gemini AI Triage' to correlate 7-day anomalies and host logs."}</div>
-          ${inc.qa_audit ? `<div class="section-lbl" style="margin-top:12px;color:var(--purple);">NIST SP 800-61 / ISO 27035 Investigation Score</div><div class="mono-box" style="border-color:var(--purple);">${inc.qa_audit}</div>` : ''}
+          ${inc.qa_audit ? `
+            <div class="row" style="justify-content:space-between;margin-top:14px;margin-bottom:8px;">
+              <div class="section-lbl" style="margin:0;color:var(--slate-hue);">Principal L2 Investigation Audit &amp; Score (NIST SP 800-61 / Telemetry Verified)</div>
+              <button class="btn btn-slate" style="padding:4px 10px;font-size:11px;" onclick="downloadShowcaseReport('${inc.incident_id}')">&#11015; Export Showcase Report</button>
+            </div>
+            <div class="mono-box" style="border-color:var(--slate-border);">${inc.qa_audit}</div>
+          ` : ''}
         </div>
 
-        <!-- 3: MULTIPLE WORK NOTES + SCREENSHOT ATTACHMENTS -->
+        <!-- IR LIFECYCLE STEPPER (OPENS POPUP ON CLICK) -->
+        <div class="section-box">
+          <div class="row" style="justify-content:space-between;margin-bottom:8px;">
+            <div class="section-lbl" style="margin:0;">Incident Response Lifecycle (Click Any Stage to Transition)</div>
+            <span style="font-size:11px;color:var(--muted);">Current: <b style="color:var(--cyan);">${inc.ir_stage}</b></span>
+          </div>
+          <div class="stepper">${stepperHtml}</div>
+        </div>
+
+        <!-- MULTIPLE WORK NOTES + SCREENSHOT ATTACHMENTS -->
         <div class="section-box">
           <div class="section-lbl">Investigation Work Notes &amp; Evidence Screenshots</div>
-          <textarea id="workNoteText" rows="2" placeholder="Document IOCs, KQL findings, containment actions..."></textarea>
+          <textarea id="workNoteText" rows="2" placeholder="Document IOCs, KQL findings, host evidence, containment steps..."></textarea>
           <div class="row" style="margin-top:8px;justify-content:space-between;">
             <div class="row">
               <input type="file" id="screenshotInput" accept="image/*" style="width:auto;font-size:11px;" onchange="handleScreenshotFile(this)" />
-              <span id="screenshotPreviewName" style="font-size:11px;color:var(--green);"></span>
+              <span id="screenshotPreviewName" style="font-size:11px;color:var(--cyan);"></span>
             </div>
-            <button class="btn btn-cyan" onclick="submitWorkNote('${inc.incident_id}')">Post Note &amp; Evidence</button>
+            <button class="btn" onclick="submitWorkNote('${inc.incident_id}')">Post Note &amp; Evidence</button>
           </div>
           <div style="margin-top:10px;">${notesHtml}</div>
         </div>
       `;
     }
 
-    function pickStage(st) {
-      pickedStage = st;
-      renderDetail();
+    async function quickAssignTicket(incId, newAssignee) {
+      const inc = incidents.find(x => x.incident_id === incId);
+      if (!inc) return;
+      const r = await fetch(`${API_BASE}/api/incidents/${incId}/stage`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          assignee: newAssignee,
+          target_stage: "Assignment",
+          justification: `Assigned incident to ${newAssignee} for triage and acknowledgement.`,
+          created_utc: inc.created_time,
+          severity: inc.severity,
+          title: inc.title,
+          ticket_number: inc.ticket_number
+        })
+      });
+      if (!r.ok) return alert(await r.text());
+      await loadIncidents();
+      // Automatically prompt for Acknowledgement right after assignment
+      openStageModal("Acknowledgement");
+    }
+
+    function openStageModal(targetStage) {
+      const inc = incidents.find(x => x.incident_id === selectedId);
+      if (!inc) return;
+      modalTargetStage = targetStage;
+      document.getElementById("modalStageTitle").textContent = targetStage;
+      document.getElementById("modalStageAssignee").textContent = document.getElementById("topAssigneeSelect")?.value || inc.assigned_to;
+      document.getElementById("modalStageJustification").value = "";
+      document.getElementById("modalClassWrap").style.display = targetStage === "Resolution" ? "block" : "none";
+      openModal("stageModal");
+    }
+
+    async function confirmStageModal() {
+      const inc = incidents.find(x => x.incident_id === selectedId);
+      const assignee = document.getElementById("topAssigneeSelect")?.value || inc.assigned_to;
+      const justification = document.getElementById("modalStageJustification").value.trim();
+      const classification = document.getElementById("modalClassSelect")?.value || "TruePositive";
+      if (justification.length < 5) return alert("Enter at least 5 characters of valid justification.");
+      const r = await fetch(`${API_BASE}/api/incidents/${inc.incident_id}/stage`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          assignee, target_stage: modalTargetStage, justification, classification,
+          created_utc: inc.created_time, severity: inc.severity, title: inc.title, ticket_number: inc.ticket_number
+        })
+      });
+      if (!r.ok) return alert(await r.text());
+      closeModal("stageModal");
+      await loadIncidents();
     }
 
     function handleScreenshotFile(input) {
@@ -481,32 +637,17 @@
       reader.readAsDataURL(file);
     }
 
-    async function submitStageTransition(incId) {
-      const inc = incidents.find(x => x.incident_id === incId);
-      const assignee = document.getElementById("assigneeSelect").value;
-      const target_stage = document.getElementById("stageSelect").value;
-      const justification = document.getElementById("stageJustification").value.trim();
-      const classification = document.getElementById("classSelect")?.value || "TruePositive";
-      if (justification.length < 5) return alert("Enter at least 5 characters of valid justification.");
-      const r = await fetch(`${API_BASE}/api/incidents/${incId}/stage`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          assignee, target_stage, justification, classification,
-          created_utc: inc.created_time, severity: inc.severity, title: inc.title, ticket_number: inc.ticket_number
-        })
-      });
-      if (!r.ok) return alert(await r.text());
-      pickedStage = null;
-      await loadIncidents();
-    }
-
     async function submitWorkNote(incId) {
+      const inc = incidents.find(x => x.incident_id === incId);
       const note = document.getElementById("workNoteText").value.trim();
-      const author = document.getElementById("assigneeSelect")?.value || "Mohan Krishna";
+      const author = document.getElementById("topAssigneeSelect")?.value || inc?.assigned_to || "Mohan Krishna";
       if (!note && !pendingScreenshotB64) return alert("Enter a work note or attach a screenshot.");
       const r = await fetch(`${API_BASE}/api/incidents/${incId}/notes`, {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ author, note, screenshot_b64: pendingScreenshotB64, screenshot_name: pendingScreenshotName })
+        body: JSON.stringify({
+          author, note, stage_tag: inc?.ir_stage || "General",
+          screenshot_b64: pendingScreenshotB64, screenshot_name: pendingScreenshotName
+        })
       });
       if (!r.ok) return alert(await r.text());
       pendingScreenshotB64 = null;
@@ -522,9 +663,88 @@
     }
 
     async function runQaAudit(incId) {
+      const inc = incidents.find(x => x.incident_id === incId);
+      if (inc && inc.sentinel_status !== "Closed" && inc.ir_stage !== "Resolution") {
+        const proceed = confirm("This incident is not marked Resolved/Closed yet. Audit the partial IR workflow anyway?");
+        if (!proceed) return;
+      }
       const r = await fetch(`${API_BASE}/api/incidents/${incId}/audit-score`, { method: "POST" });
       if (!r.ok) return alert(await r.text());
       await loadIncidents();
+    }
+
+    // === DOWNLOADABLE COMPLETE IR SHOWCASE REPORT ===
+    function downloadShowcaseReport(incId) {
+      const inc = incidents.find(x => x.incident_id === incId);
+      if (!inc) return;
+      const esc = s => String(s || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+
+      const stageSections = IR_STAGES.map(st => {
+        const ts = inc.ir_timestamps?.[st];
+        const stageNotes = (inc.work_notes || []).filter(n =>
+          (n.stage_tag === st) || (n.note && n.note.includes(`[IR Phase: ${st}]`))
+        );
+        return `
+          <div style="border:1px solid #cbd5e1;border-radius:10px;padding:16px;margin-bottom:14px;background:#f8fafc;">
+            <div style="display:flex;justify-content:space-between;border-bottom:1px solid #e2e8f0;padding-bottom:8px;margin-bottom:10px;">
+              <strong style="color:#0f172a;font-size:15px;">Phase: ${st}</strong>
+              <span style="color:#0284c7;font-family:monospace;font-size:12px;">Timestamp: ${ts ? new Date(ts).toUTCString() : 'Not Executed'}</span>
+            </div>
+            ${stageNotes.length ? stageNotes.map(n => `
+              <div style="background:#fff;border-left:4px solid #06b6d4;padding:10px 12px;margin-bottom:8px;border-radius:6px;">
+                <div style="font-size:11px;color:#475569;margin-bottom:4px;"><strong>${esc(n.author)}</strong> &bull; ${new Date(n.created_at).toUTCString()}</div>
+                <div style="font-size:13px;color:#1e293b;white-space:pre-wrap;">${esc(n.note)}</div>
+                ${n.screenshot_b64 ? `<div style="margin-top:8px;"><img src="${n.screenshot_b64}" style="max-width:100%;border-radius:6px;border:1px solid #cbd5e1;" /><div style="font-size:11px;color:#64748b;">Evidence: ${esc(n.screenshot_name || 'screenshot.png')}</div></div>` : ''}
+              </div>
+            `).join("") : `<div style="font-size:12px;color:#64748b;font-style:italic;">No phase-specific notes logged.</div>`}
+          </div>`;
+      }).join("");
+
+      const generalNotes = (inc.work_notes || []).filter(n => !IR_STAGES.includes(n.stage_tag) && !(n.note || "").includes("[IR Phase:"));
+
+      const htmlDoc = `<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>${esc(inc.ticket_number)} - MKRYPT SOC Incident Report</title>
+<style>
+  body { font-family: 'Segoe UI', Arial, sans-serif; color: #0f172a; max-width: 960px; margin: 30px auto; padding: 0 20px; line-height: 1.5; }
+  .banner { background: #070b14; color: #e2e8f0; padding: 24px; border-radius: 12px; border-bottom: 4px solid #06b6d4; }
+  .meta-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 18px 0; }
+  .meta-card { border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px; background: #f8fafc; }
+  pre { background: #0f172a; color: #e2e8f0; padding: 14px; border-radius: 8px; white-space: pre-wrap; font-size: 12px; }
+  h2 { color: #0f172a; border-bottom: 2px solid #06b6d4; padding-bottom: 6px; margin-top: 26px; }
+</style></head><body>
+  <div class="banner">
+    <div style="color:#06b6d4;font-weight:800;letter-spacing:0.1em;font-size:12px;">MKRYPT AUTONOMOUS SOC // INCIDENT CASE REPORT</div>
+    <h1 style="margin:6px 0 4px;font-size:22px;">${esc(inc.ticket_number)}: ${esc(inc.title)}</h1>
+    <div style="font-size:13px;color:#94a3b8;">Workspace: SENTINEL-LAB (East Asia) &bull; Exported: ${new Date().toUTCString()}</div>
+  </div>
+  <div class="meta-grid">
+    <div class="meta-card"><small style="color:#64748b;">LEAD ANALYST</small><br><strong>${esc(inc.assigned_to)}</strong></div>
+    <div class="meta-card"><small style="color:#64748b;">SEVERITY / SLA TARGET</small><br><strong>${esc(inc.severity)} (${inc.sla_minutes} mins)</strong></div>
+    <div class="meta-card"><small style="color:#64748b;">SENTINEL STATUS</small><br><strong>${esc(inc.sentinel_status)} ${inc.classification ? '(' + esc(inc.classification) + ')' : ''}</strong></div>
+  </div>
+  <h2>1. Executive Alert Description</h2>
+  <p>${esc(inc.description || 'No description provided.')}</p>
+  <h2>2. Principal L2 Quality Audit &amp; NIST SP 800-61 Scorecard</h2>
+  <pre>${esc(inc.qa_audit || 'L2 QA Audit not yet executed for this incident.')}</pre>
+  <h2>3. Automated Gemini AI &amp; KQL Correlation Triage</h2>
+  <pre>${esc(inc.ai_analysis || 'AI Triage report not generated.')}</pre>
+  <h2>4. Chronological Incident Response Execution (By IR Stage)</h2>
+  ${stageSections}
+  ${generalNotes.length ? `<h2>5. Additional Investigation Notes &amp; Evidence</h2>${generalNotes.map(n => `
+    <div style="border:1px solid #cbd5e1;padding:12px;border-radius:8px;margin-bottom:10px;">
+      <div style="font-size:11px;color:#475569;"><strong>${esc(n.author)}</strong> &bull; ${new Date(n.created_at).toUTCString()}</div>
+      <div style="margin-top:4px;">${esc(n.note)}</div>
+      ${n.screenshot_b64 ? `<img src="${n.screenshot_b64}" style="max-width:100%;margin-top:8px;border-radius:6px;" />` : ''}
+    </div>`).join("")}` : ''}
+</body></html>`;
+
+      const blob = new Blob([htmlDoc], { type: "text/html;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${inc.ticket_number}_IR_Showcase_Report.html`;
+      a.click();
+      URL.revokeObjectURL(url);
     }
 
     // 5: CUSTOM METRICS TAB (MTTA / MTTI / MTTR)
@@ -547,11 +767,11 @@
           <td>${row.ack_mins ?? '-'}</td>
           <td>${row.contain_mins ?? '-'}</td>
           <td>${row.resolve_mins ?? '-'}</td>
-          <td><span class="sla-tag ${row.sla_status === 'BREACHED' ? 'sla-breach' : 'sla-ok'}">${row.sla_status}</span></td>
+          <td><span class="sla-tag ${row.sla_status === 'BREACHED' ? 'breach' : ''}">${row.sla_status}</span></td>
         </tr>`).join("");
     }
 
-    // 4: LAB TOPOLOGY + PASSWORD-GATED VM-1 DISABLE
+    // 4: LAB TOPOLOGY + CONNECTED AMA AGENTS LIST
     async function loadTopology() {
       const r = await fetch(`${API_BASE}/api/lab/topology`);
       const d = await r.json();
@@ -563,11 +783,16 @@
           </div>
           <div style="font-size:12px;color:var(--muted);margin:8px 0;">${vm.os} · Private IP: ${vm.private_ip}</div>
           <div class="row" style="margin-top:10px;">
-            <button class="btn btn-green" onclick="controlVm('${vm.name}', 'start')">Start VM</button>
-            <button class="btn btn-red" onclick="requestVmDeallocate('${vm.name}')">Disable / Deallocate</button>
+            <button class="btn" onclick="controlVm('${vm.name}', 'start')">Start VM</button>
+            <button class="btn btn-danger" onclick="requestVmDeallocate('${vm.name}')">Disable / Deallocate</button>
           </div>
         </div>`).join("");
-      document.getElementById("hbBox").textContent = JSON.stringify(d.connected_agents_24h, null, 2);
+
+      const agents = d.connected_agents_24h || [];
+      document.getElementById("hbList").innerHTML = agents.length ? agents.map(a => {
+        const timeStr = a.LastSeen ? new Date(a.LastSeen).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', second: '2-digit' }) : 'Unknown';
+        return `<div class="agent-row"><span class="agent-name">${a.Computer || 'Unknown Host'}</span><span class="agent-time">${timeStr}</span></div>`;
+      }).join("") : `<div style="color:var(--muted);font-size:12px;">No AMA agent heartbeats detected in the last 24h.</div>`;
     }
 
     function requestVmDeallocate(vmName) {
@@ -594,12 +819,38 @@
       loadTopology();
     }
 
-    async function loadKqlPresets() {
+    // KQL HUNT SANDBOX
+    async function loadKqlSandbox() {
       const r = await fetch(`${API_BASE}/api/lab/kql-sandbox`);
       const d = await r.json();
-      document.getElementById("kqlPresets").innerHTML = (d.sample_queries || []).map(q =>
-        `<button class="btn btn-ghost" onclick='document.getElementById("kqlInput").value=${JSON.stringify(q.kql)}'>${q.title}</button>`
-      ).join("");
+      if (d.username) document.getElementById("sandboxUpn").textContent = d.username;
+      if (d.password) document.getElementById("sandboxPass").textContent = d.password;
+      document.getElementById("kqlPresetCards").innerHTML = (d.sample_queries || []).map((q, idx) => `
+        <div class="preset-card">
+          <div class="preset-hdr">
+            <span>${q.title}</span>
+            <div class="row">
+              <button class="btn btn-ghost" style="padding:4px 10px;font-size:11px;" onclick='copyPresetKql(${idx}, this)'>Copy KQL</button>
+              <button class="btn btn-slate" style="padding:4px 10px;font-size:11px;" onclick='loadAndRunKql(${idx})'>Load &amp; Run</button>
+            </div>
+          </div>
+          <div class="preset-kql" id="presetKqlText_${idx}">${q.kql}</div>
+        </div>
+      `).join("");
+    }
+
+    function copyPresetKql(idx, btn) {
+      const txt = document.getElementById(`presetKqlText_${idx}`).textContent;
+      navigator.clipboard.writeText(txt);
+      const orig = btn.textContent;
+      btn.textContent = "Copied!";
+      setTimeout(() => btn.textContent = orig, 1500);
+    }
+
+    function loadAndRunKql(idx) {
+      const txt = document.getElementById(`presetKqlText_${idx}`).textContent;
+      document.getElementById("kqlInput").value = txt;
+      runKqlQuery();
     }
 
     async function runKqlQuery() {
